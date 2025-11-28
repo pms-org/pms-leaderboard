@@ -28,5 +28,5 @@ public class WebSocketService {
         MessageDTO msg = new MessageDTO("Update Event from server");
         handler.broadcast(mapper.writeValueAsString(msg));
     }
-    
+
 }
