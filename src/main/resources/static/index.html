@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>WebSocket Test</h2>
+<div id="messages"></div>
+
+<script>
+   const socket = new WebSocket("ws://localhost:8080/ws/updates");
+
+   socket.onmessage = function(event) {
+     
+       const data = JSON.parse(event.data);
+       console.log("Received data:", data.message);
+        document.getElementById("messages").innerHTML +=
+        `<p>Portfolio: ${data.message} | PnL: ${data.unrealizedPnl}</p>`;
+
+   };
+</script>
+
+</body>
+</html>
