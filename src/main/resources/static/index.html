@@ -1,21 +1,74 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Live Leaderboard</title>
+
+  <style>
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; text-align: center; border: 1px solid #ddd; }
+    th { background: #f2f2f2; }
+    tr.highlight { background-color: #fffbcc; transition: background-color 1s ease; }
+  </style>
+</head>
 <body>
-<h2>WebSocket Test</h2>
-<div id="messages"></div>
+<h2>📊 Real-Time Leaderboard</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Rank</th>
+      <th>Portfolio ID</th>
+      <th>Score</th>
+      <th>Updated</th>
+    </tr>
+  </thead>
+  <tbody id="tbl"></tbody>
+</table>
 
 <script>
-   const socket = new WebSocket("ws://localhost:8080/ws/updates");
+  const ws = new WebSocket((location.protocol === "https:" ? "wss:" : "ws:") + "//" + location.host + "/ws/updates");
 
-   socket.onmessage = function(event) {
-     
-       const data = JSON.parse(event.data);
-       console.log("Received data:", data.message);
-        document.getElementById("messages").innerHTML +=
-        `<p>Portfolio: ${data.message} | PnL: ${data.unrealizedPnl}</p>`;
+  let board = {};
 
-   };
+  ws.onopen = () => console.log("WebSocket Connected");
+
+  ws.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    console.log("Received WS:", msg);
+
+    if (msg.event === "leaderboardSnapshot") {
+      applySnapshot(msg.top);
+      redrawTable();
+    }
+  };
+
+  function applySnapshot(list) {
+    list.forEach(u => {
+      const pid = u.portfolioId;
+      board[pid] = {
+        pid,
+        score: u.score,
+        updated: new Date(u.updatedAt).toLocaleTimeString()
+      };
+    });
+  }
+
+  function redrawTable() {
+    const tbl = document.getElementById("tbl");
+    const sorted = Object.values(board)
+        .sort((a, b) => b.score - a.score)
+        .map((row, idx) => ({ rank: idx + 1, ...row }));
+
+    tbl.innerHTML = sorted.map(r => `
+      <tr>
+        <td>${r.rank}</td>
+        <td>${r.pid}</td>
+        <td>${r.score}</td>
+        <td>${r.updated}</td>
+      </tr>
+    `).join("");
+  }
 </script>
-
 </body>
 </html>
