@@ -110,6 +110,9 @@ public class LeaderboardService {
             });
             cur.setPortfolioScore(score);
             cur.setLeaderboardRanking(rank);
+            cur.setAvgRateOfReturn(m.getAvgRateOfReturn());
+            cur.setSharpeRatio(m.getSharpeRatio());
+            cur.setSortinoRatio(m.getSortinoRatio());
             cur.setUpdatedAt(Instant.now());
             currentRepo.save(cur);
 
@@ -143,15 +146,12 @@ public class LeaderboardService {
                     UUID pid = UUID.fromString(pidStr);
                     currentRepo.findByPortfolioId(pid).ifPresent(lb -> {
                         r.put("score", lb.getPortfolioScore());
+                        r.put("avgReturn", lb.getAvgRateOfReturn());
+                        r.put("sharpe", lb.getSharpeRatio());
+                        r.put("sortino", lb.getSortinoRatio());
                         r.put("updatedAt", lb.getUpdatedAt());
                     });
 
-                    MessageDTO latest = latestMap.get(pid);
-                    if (latest != null) {
-                        r.put("avgReturn", latest.getAvgRateOfReturn());
-                        r.put("sharpe", latest.getSharpeRatio());
-                        r.put("sortino", latest.getSortinoRatio());
-                    }
                 } catch (Exception ex) {
                 }
                 rows.add(r);

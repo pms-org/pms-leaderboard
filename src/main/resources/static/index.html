@@ -129,183 +129,203 @@
 
 <!DOCTYPE html>
 <html>
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Live Leaderboard</title>
+   <meta charset="UTF-8" />
+   <title>Live Leaderboard</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f7f9;
-      margin: 0;
-      padding: 20px;
-    }
+   <style>
+      body {
+         font-family: Arial, sans-serif;
+         background: #f4f7f9;
+         margin: 0;
+         padding: 20px;
+      }
 
-    h2 {
-      text-align: center;
-      font-size: 28px;
-      margin-bottom: 20px;
-      color: #222;
-    }
+      h2 {
+         text-align: center;
+         font-size: 28px;
+         margin-bottom: 20px;
+         color: #222;
+      }
 
-    .toolbar {
-      width: 90%;
-      max-width: 1200px;
-      margin: 0 auto 10px auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+      .toolbar {
+         width: 90%;
+         max-width: 1200px;
+         margin: 0 auto 10px auto;
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+      }
 
-    input {
-      padding: 8px;
-      width: 240px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
+      input {
+         padding: 8px;
+         width: 240px;
+         border-radius: 5px;
+         border: 1px solid #ccc;
+      }
 
-    .page-info { font-size: 14px; }
+      .page-info {
+         font-size: 14px;
+      }
 
-    button {
-      padding: 6px 12px;
-      margin-left: 5px;
-      cursor: pointer;
-    }
+      button {
+         padding: 6px 12px;
+         margin-left: 5px;
+         cursor: pointer;
+      }
 
-    table {
-      width: 90%;
-      max-width: 1200px;
-      margin: auto;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    }
+      table {
+         width: 90%;
+         max-width: 1200px;
+         margin: auto;
+         border-collapse: collapse;
+         background: white;
+         border-radius: 10px;
+         overflow: hidden;
+         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      }
 
-    thead {
-      background: #1f6feb;
-      color: white;
-      font-size: 16px;
-      position: sticky;
-      top: 0;
-    }
+      thead {
+         background: #1f6feb;
+         color: white;
+         font-size: 16px;
+         position: sticky;
+         top: 0;
+      }
 
-    th, td {
-      padding: 12px;
-      text-align: center;
-      border-bottom: 1px solid #e1e5eb;
-    }
+      th,
+      td {
+         padding: 12px;
+         text-align: center;
+         border-bottom: 1px solid #e1e5eb;
+      }
 
-    tbody tr:nth-child(even) {
-      background: #f9fbfd;
-    }
+      tbody tr:nth-child(even) {
+         background: #f9fbfd;
+      }
 
-    tbody tr:hover {
-      background: #eef6ff;
-      transition: background-color 0.3s ease;
-    }
+      tbody tr:hover {
+         background: #eef6ff;
+         transition: background-color 0.3s ease;
+      }
 
-    tr.highlight {
-      animation: flash 1.2s ease;
-    }
+      tr.highlight {
+         animation: flash 1.2s ease;
+      }
 
-    @keyframes flash {
-      from { background-color: #fff3a2; }
-      to   { background-color: white; }
-    }
+      @keyframes flash {
+         from {
+            background-color: #fff3a2;
+         }
 
-    .up { color: green; font-weight: bold; }
-    .down { color: red; font-weight: bold; }
-    .same { color: grey; }
-  </style>
+         to {
+            background-color: white;
+         }
+      }
+
+      .up {
+         color: green;
+         font-weight: bold;
+      }
+
+      .down {
+         color: red;
+         font-weight: bold;
+      }
+
+      .same {
+         color: grey;
+      }
+   </style>
 </head>
+
 <body>
 
-<h2>📊 Live Portfolio Leaderboard</h2>
+   <h2>📊 Live Portfolio Leaderboard</h2>
 
-<!-- Toolbar -->
-<div class="toolbar">
-  <input type="text" id="search" placeholder="Search portfolio ID...">
-  <div class="page-info">
-    <button onclick="prevPage()">Prev</button>
-    <span id="pageNum">Page 1</span>
-    <button onclick="nextPage()">Next</button>
-  </div>
-</div>
+   <!-- Toolbar -->
+   <div class="toolbar">
+      <input type="text" id="search" placeholder="Search portfolio ID...">
+      <div class="page-info">
+         <button onclick="prevPage()">Prev</button>
+         <span id="pageNum">Page 1</span>
+         <button onclick="nextPage()">Next</button>
+      </div>
+   </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Rank</th>
-      <th>Portfolio ID</th>
-      <th>Score</th>
-      <th>Avg Return</th>
-      <th>Sharpe</th>
-      <th>Sortino</th>
-      <th>Updated</th>
-    </tr>
-  </thead>
-  <tbody id="tbl"></tbody>
-</table>
+   <table>
+      <thead>
+         <tr>
+            <th>Rank</th>
+            <th>Portfolio ID</th>
+            <th>Score</th>
+            <th>Avg Return</th>
+            <th>Sharpe</th>
+            <th>Sortino</th>
+            <th>Updated</th>
+         </tr>
+      </thead>
+      <tbody id="tbl"></tbody>
+   </table>
 
-<script>
-  const ws = new WebSocket((location.protocol === "https:" ? "wss:" : "ws:") + "//" + location.host + "/ws/updates");
+   <script>
+      const ws = new WebSocket((location.protocol === "https:" ? "wss:" : "ws:") + "//" + location.host + "/ws/updates");
 
-  let board = {};
-  let prevScores = {};
-  let page = 1;
-  const pageSize = 10;
+      let board = {};
+      let prevScores = {};
+      let page = 1;
+      const pageSize = 10;
 
-  ws.onopen = () => console.log("WebSocket Connected");
+      ws.onopen = () => console.log("WebSocket Connected");
 
-  ws.onmessage = (evt) => {
-    const msg = JSON.parse(evt.data);
-    console.log("Received WS:", msg);
+      ws.onmessage = (evt) => {
+         const msg = JSON.parse(evt.data);
+         console.log("Received WS:", msg);
 
-    if (msg.event === "leaderboardSnapshot") {
-      applySnapshot(msg.top);
-      redrawTable();
-    }
-  };
-
-  function applySnapshot(list) {
-    list.forEach(u => {
-      const pid = u.portfolioId;
-
-      prevScores[pid] = board[pid]?.score || 0;
-
-      board[pid] = {
-        pid,
-        score: u.score,
-        avg: u.avgRateOfReturn,
-        sharpe: u.sharpeRatio,
-        sortino: u.sortinoRatio,
-        updated: new Date(u.updatedAt).toLocaleTimeString()
+         if (msg.event === "leaderboardSnapshot") {
+            applySnapshot(msg.top);
+            redrawTable();
+         }
       };
-    });
-  }
 
-  function redrawTable() {
-    const searchVal = document.getElementById("search").value.toLowerCase();
-    const tbl = document.getElementById("tbl");
+      function applySnapshot(list) {
+         list.forEach(u => {
+            const pid = u.portfolioId;
 
-    let sorted = Object.values(board)
-      .filter(r => r.pid.toLowerCase().includes(searchVal))
-      .sort((a, b) => b.score - a.score)
-      .map((row, idx) => ({ rank: idx + 1, ...row }));
+            prevScores[pid] = board[pid]?.score || 0;
 
-    const start = (page - 1) * pageSize;
-    const paginated = sorted.slice(start, start + pageSize);
+            board[pid] = {
+               pid,
+               score: u.score,
+               avg: u.avgReturn,
+               sharpe: u.sharpe,
+               sortino: u.sortino,
+               updated: new Date(u.updatedAt).toLocaleTimeString()
+            };
+         });
+      }
 
-    tbl.innerHTML = paginated.map(r => {
-      let changeClass = "same";
-      let arrow = "—";
+      function redrawTable() {
+         const searchVal = document.getElementById("search").value.toLowerCase();
+         const tbl = document.getElementById("tbl");
 
-      if (r.score > prevScores[r.pid]) { changeClass = "up"; arrow = "▲"; }
-      else if (r.score < prevScores[r.pid]) { changeClass = "down"; arrow = "▼"; }
+         let sorted = Object.values(board)
+            .filter(r => r.pid.toLowerCase().includes(searchVal))
+            .sort((a, b) => b.score - a.score)
+            .map((row, idx) => ({ rank: idx + 1, ...row }));
 
-      return `
+         const start = (page - 1) * pageSize;
+         const paginated = sorted.slice(start, start + pageSize);
+
+         tbl.innerHTML = paginated.map(r => {
+            let changeClass = "same";
+            let arrow = "—";
+
+            if (r.score > prevScores[r.pid]) { changeClass = "up"; arrow = "▲"; }
+            else if (r.score < prevScores[r.pid]) { changeClass = "down"; arrow = "▼"; }
+
+            return `
         <tr class="highlight">
           <td>${r.rank}</td>
           <td>${r.pid}</td>
@@ -316,17 +336,18 @@
           <td>${r.updated}</td>
         </tr>
       `;
-    }).join("");
+         }).join("");
 
-    document.getElementById("pageNum").innerText = `Page ${page}`;
-  }
+         document.getElementById("pageNum").innerText = `Page ${page}`;
+      }
 
-  // Pagination
-  function nextPage() { page++; redrawTable(); }
-  function prevPage() { if (page > 1) page--; redrawTable(); }
+      // Pagination
+      function nextPage() { page++; redrawTable(); }
+      function prevPage() { if (page > 1) page--; redrawTable(); }
 
-  document.getElementById("search").addEventListener("input", redrawTable);
-</script>
+      document.getElementById("search").addEventListener("input", redrawTable);
+   </script>
 
 </body>
+
 </html>

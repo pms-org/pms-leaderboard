@@ -14,8 +14,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity 
-@Data 
+@Entity
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "Leaderboard")
@@ -30,6 +30,15 @@ public class Leaderboard {
 
     @Column(name = "leaderboard_ranking")
     private Long leaderboardRanking;
+
+    @Column(name = "avg_rate_of_return")
+    private BigDecimal avgRateOfReturn;
+
+    @Column(name = "sharpe_ratio")
+    private BigDecimal sharpeRatio;
+
+    @Column(name = "sortino_ratio")
+    private BigDecimal sortinoRatio;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
