@@ -22,24 +22,15 @@ public class AnalyticsProducer {
     @Autowired
     ObjectMapper mapper;
 
-//     @Scheduled(fixedRate = 2000)
-//     public String sendMessage() throws Exception {
-//     MessageDTO event = new MessageDTO(
-//     UUID.fromString("b3a1f250-0d4f-4b53-b0c9-651be64225f9"),
-//     new BigDecimal("1.85"),
-//     new BigDecimal("2.40"),
-//     new BigDecimal("0.17"),
-//     LocalDateTime.now()
-// );
-//     kafkaTemplate.send("portfolio-metrics", mapper.writeValueAsString(event));
-//         return "Message sent";
-//     }
-
-
-private final UUID[] portfolioIds = {
+    private final UUID[] portfolioIds = {
         UUID.fromString("b3a1f250-0d4f-4b53-b0c9-651be64225f9"),
         UUID.fromString("c2b9f250-1a1d-4b53-c0c9-1111e64225f8"),
-        UUID.fromString("a1b2c3d4-9876-4321-baaa-998877665544")
+        UUID.fromString("a1b2c3d4-9876-4321-baaa-998877665544"),
+        UUID.fromString("55bb22cc-1234-4a53-b0c9-222266442299"),
+        UUID.fromString("66cc33dd-5678-4c53-c0c9-333377553311"),
+        UUID.fromString("77dd44ee-1111-4d53-a0c9-444488664422"),
+        UUID.fromString("88ee55ff-2222-4e53-b0c9-555599775533"),
+        UUID.fromString("99ff66aa-3333-4f53-c0c9-666600886644")
     };
 
     private int index = 0;

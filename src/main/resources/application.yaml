@@ -34,6 +34,10 @@ spring:
       group-id: ws-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  docker:
+    compose:
+      enabled: false
   
   logging:
    level:
