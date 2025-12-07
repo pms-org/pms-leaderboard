@@ -1,5 +1,8 @@
 package com.pms.leaderboard.events;
 
+import java.util.List;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -22,14 +25,17 @@ public class AnalyticsConsumer {
     @Autowired
     LeaderboardService leaderboardService;
 
-    @KafkaListener(topics = "portfolio-metrics", groupId = "leaderboard-group")
-    public void listen(String payload) {
-        try {
-            MessageDTO message = mapper.readValue(payload, MessageDTO.class);
-            System.out.println("Received: " + message);
-            leaderboardService.enqueue(message);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    @KafkaListener(
+        topics = "portfolio-metrics",
+        groupId = "leaderboard-group",
+        containerFactory = "batchKafkaListenerContainerFactory"
+)
+public void consume(List<String> messages) {
+    List<MessageDTO> list = messages.stream()
+            .map(m -> mapper.readValue(m, MessageDTO.class))
+            .toList();
+
+    leaderboardService.processBatch(list);
+}
+
 }

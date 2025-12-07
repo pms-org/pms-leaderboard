@@ -43,13 +43,13 @@ public class AnalyticsProducer {
 
         MessageDTO event = new MessageDTO(
             pid,
-            random(1.0, 5.0),   // return rate
-            random(0.1, 3.0),   // sharpe
-            random(0.1, 1.5),   // sortino
+            random(1.0, 5.0),   
+            random(0.1, 3.0),  
+            random(0.1, 1.5), 
             LocalDateTime.now()
         );
 
-        kafkaTemplate.send("portfolio-metrics", mapper.writeValueAsString(event));
+        kafkaTemplate.send("portfolio-metrics", pid.toString(), mapper.writeValueAsString(event));
         System.out.println("Sent Kafka Event: " + event);
     }
 

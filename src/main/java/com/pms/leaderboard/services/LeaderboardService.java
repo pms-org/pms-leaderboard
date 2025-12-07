@@ -42,72 +42,48 @@ public class LeaderboardService {
     @Autowired
     WebSocketHandler wsHandler;
 
-    private final Map<UUID, MessageDTO> latestMap = new ConcurrentHashMap<>();
+    /**
+     * Called once by Kafka Consumer batch for all messages in this poll
+     */
+    public void processBatch(List<MessageDTO> batchList) {
 
-    public void enqueue(MessageDTO ev) {
-        if (ev == null || ev.getPortfolioId() == null)
-            return;
-        pending.add(ev);
-        latestMap.put(ev.getPortfolioId(), ev);
-    }
-
-    private BigDecimal computeScore(MessageDTO e) {
-
-        BigDecimal rate = e.getAvgRateOfReturn();
-        BigDecimal sharpe = e.getSharpeRatio();
-        BigDecimal sortino = e.getSortinoRatio();
-
-        return rate.multiply(BigDecimal.valueOf(100.0))
-                .add(sharpe.multiply(BigDecimal.valueOf(50.0)))
-                .add(sortino.multiply(BigDecimal.valueOf(10.0)));
-    }
-
-    private double composeRedisScore(BigDecimal baseScore, Instant eventTime, UUID portfolioId) {
-        double base = baseScore.doubleValue();
-        long ts = (eventTime != null) ? eventTime.toEpochMilli() : Instant.now().toEpochMilli();
-
-        double stampFraction = (ts % 1000) / 1e9;
-
-        int idHash = Math.abs(portfolioId.hashCode() % 1000);
-        double idFraction = idHash / 1e12;
-
-        return base + stampFraction + idFraction;
-    }
-
-    @Scheduled(fixedRate = 250)
-    public void flushAndProcess() {
-        MessageDTO ev;
-        while ((ev = pending.poll()) != null) {
-
-        }
-
-        if (latestMap.isEmpty())
+        if (batchList == null || batchList.isEmpty())
             return;
 
         String zkey = "leaderboard:global:daily";
         ZSetOperations<String, String> zset = redis.opsForZSet();
 
-        Map<UUID, MessageDTO> batch = new HashMap<>(latestMap);
-        latestMap.clear();
+        // keep latest per portfolio within just this batch
+        Map<UUID, MessageDTO> latest = new HashMap<>();
 
-        for (MessageDTO m : batch.values()) {
+        for (MessageDTO m : batchList) {
+            latest.put(m.getPortfolioId(), m);
+        }
+
+        for (MessageDTO m : latest.values()) {
+
             UUID pid = m.getPortfolioId();
             BigDecimal score = computeScore(m);
+
             Instant stamp = (m.getTimeStamp() == null) ? Instant.now()
                     : m.getTimeStamp().atZone(ZoneOffset.UTC).toInstant();
 
-            double rscore = composeRedisScore(score, stamp, pid);
+            double rScore = composeRedisScore(score, stamp, pid);
 
-            zset.add(zkey, pid.toString(), rscore);
+            zset.add(zkey, pid.toString(), rScore);
 
+            // ranking
             Long rankPos = zset.reverseRank(zkey, pid.toString());
             long rank = (rankPos == null) ? -1L : rankPos + 1L;
 
-            Leaderboard cur = currentRepo.findByPortfolioId(pid).orElseGet(() -> {
-                Leaderboard lb = new Leaderboard();
-                lb.setPortfolioId(pid);
-                return lb;
-            });
+            // Write current leaderboard row
+            Leaderboard cur = currentRepo.findByPortfolioId(pid)
+                    .orElseGet(() -> {
+                        Leaderboard lb = new Leaderboard();
+                        lb.setPortfolioId(pid);
+                        return lb;
+                    });
+
             cur.setPortfolioScore(score);
             cur.setLeaderboardRanking(rank);
             cur.setAvgRateOfReturn(m.getAvgRateOfReturn());
@@ -116,6 +92,7 @@ public class LeaderboardService {
             cur.setUpdatedAt(Instant.now());
             currentRepo.save(cur);
 
+            // Snapshot history row
             Leaderboard_Snapshot snap = new Leaderboard_Snapshot();
             snap.setHistoryId(UUID.randomUUID());
             snap.setPortfolioId(pid);
@@ -128,43 +105,59 @@ public class LeaderboardService {
             snapshotRepo.save(snap);
         }
 
-        int topN = 50;
-        Set<ZSetOperations.TypedTuple<String>> top = zset.reverseRangeWithScores(zkey, 0, topN - 1);
+        broadcastLeaderboard(zkey);
+    }
 
-        List<Map<String, Object>> rows = new ArrayList<>();
+    private void broadcastLeaderboard(String key) {
+
+        ZSetOperations<String, String> zset = redis.opsForZSet();
+        Set<ZSetOperations.TypedTuple<String>> top = zset.reverseRangeWithScores(key, 0, 49);
+
+        List<Map<String, Object>> response = new ArrayList<>();
         if (top != null) {
-            int pos = 1;
+            int rank = 1;
             for (ZSetOperations.TypedTuple<String> t : top) {
-                String pidStr = t.getValue();
-                double composite = (t.getScore() == null) ? 0.0 : t.getScore();
-
                 Map<String, Object> r = new HashMap<>();
-                r.put("rank", pos++);
-                r.put("portfolioId", pidStr);
-                r.put("compositeScore", composite);
+                r.put("rank", rank++);
+                r.put("portfolioId", t.getValue());
+                r.put("compositeScore", t.getScore());
                 try {
-                    UUID pid = UUID.fromString(pidStr);
+                    UUID pid = UUID.fromString(t.getValue());
                     currentRepo.findByPortfolioId(pid).ifPresent(lb -> {
-                        r.put("score", lb.getPortfolioScore());
                         r.put("avgReturn", lb.getAvgRateOfReturn());
                         r.put("sharpe", lb.getSharpeRatio());
                         r.put("sortino", lb.getSortinoRatio());
                         r.put("updatedAt", lb.getUpdatedAt());
                     });
-
                 } catch (Exception ex) {
                 }
-                rows.add(r);
+
+                response.add(r);
             }
         }
 
         Map<String, Object> envelope = new HashMap<>();
         envelope.put("event", "leaderboardSnapshot");
         envelope.put("timestamp", Instant.now().toEpochMilli());
-        envelope.put("top", rows);
-        wsHandler.broadcast(envelope);
+        envelope.put("top", response);
 
-        System.out.println("Broadcasted snapshot, entries=" + rows.size());
+        wsHandler.broadcast(envelope);
+        System.out.println("Broadcasted snapshot: " + response.size());
+    }
+
+    private BigDecimal computeScore(MessageDTO e) {
+        return e.getAvgRateOfReturn().multiply(BigDecimal.valueOf(100.0))
+                .add(e.getSharpeRatio().multiply(BigDecimal.valueOf(50.0)))
+                .add(e.getSortinoRatio().multiply(BigDecimal.valueOf(10.0)));
+    }
+
+    private double composeRedisScore(BigDecimal baseScore, Instant eventTime, UUID portfolioId) {
+        double base = baseScore.doubleValue();
+        long ts = eventTime.toEpochMilli();
+        double stampFraction = (ts % 1000) / 1e9;
+        int idHash = Math.abs(portfolioId.hashCode() % 1000);
+        double hashFrac = idHash / 1e12;
+        return base + stampFraction + hashFrac;
     }
 
     public List<Map<String, Object>> getTop(String boardKey, int topN) {

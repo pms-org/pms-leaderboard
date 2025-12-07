@@ -21,7 +21,7 @@ spring:
     port: 6379
 
   server: 
-    port: 8000
+    port: 8080
 
   kafka:
     bootstrap-servers: localhost:9092
@@ -31,7 +31,10 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
     consumer:
-      group-id: ws-group
+      group-id: leaderboard-group
+      max-poll-records: 500
+      enable-auto-commit: false
+      auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
