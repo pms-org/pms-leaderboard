@@ -17,6 +17,11 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 
+import com.pms.leaderboard.proto.RiskEvent;
+
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
+
 @Configuration
 @EnableKafka
 public class KafkaConfig {
@@ -35,19 +40,47 @@ public class KafkaConfig {
         return new KafkaTemplate<>(producerFactory());
     }
 
+        /* ---------- 2. PROTOBUF PRODUCER (String key, RiskEvent value) ---------- */
     @Bean
-    public ConsumerFactory<String, String> consumerFactory() {
+    public ProducerFactory<String, RiskEvent> riskEventProducerFactory() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaProtobufSerializer.class);
+
+        // schema registry for Protobuf
+        config.put("schema.registry.url", "http://localhost:8081");
+
+        return new DefaultKafkaProducerFactory<>(config);
+    }
+
+    @Bean
+    public KafkaTemplate<String, RiskEvent> riskEventKafkaTemplate() {
+        return new KafkaTemplate<>(riskEventProducerFactory());
+    }
+
+    @Bean
+    public ConsumerFactory<String, RiskEvent> consumerFactory() {
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "ws-group");
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, "leaderboard-group");
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        // Confluent Protobuf deserializer
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaProtobufDeserializer.class);
+        // Schema Registry
+        config.put("schema.registry.url", "http://localhost:8081");
+        // Tell the deserializer what concrete type to produce
+        config.put("specific.protobuf.value.type", RiskEvent.class.getName());
+        // Batch / offset behaviour – optional but sensible
+        config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> batchKafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+    public ConcurrentKafkaListenerContainerFactory<String, RiskEvent> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, RiskEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
 
         // ⭐ Batch mode enabled

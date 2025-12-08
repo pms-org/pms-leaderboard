@@ -10,12 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.pms.leaderboard.Handler.WebSocketHandler;
@@ -31,7 +29,7 @@ public class LeaderboardService {
     @Autowired
     private StringRedisTemplate redis;
 
-    private final ConcurrentLinkedQueue<MessageDTO> pending = new ConcurrentLinkedQueue<>();
+    // private final ConcurrentLinkedQueue<MessageDTO> pending = new ConcurrentLinkedQueue<>();
 
     @Autowired
     LeaderboardRepository currentRepo;
