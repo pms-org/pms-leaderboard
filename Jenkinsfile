@@ -2,41 +2,57 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "kanishka/leaderboard-backend"
-        IMAGE_TAG = "latest"
+        DOCKER_IMAGE = "kanishkapriya/pms-leaderboard"
+        DOCKER_TAG = "${env.BUILD_NUMBER}"
     }
 
     stages {
         stage('Checkout') {
-            steps { git branch: 'main', url: 'https://github.com/your/repo.git' }
+            steps {
+                git branch: 'main', url: 'https://github.com/pms-org/pms-leaderboard.git'
+            }
         }
 
         stage('Build') {
-            steps { sh 'mvn clean package -DskipTests' }
-        }
-
-        stage('Docker Build') {
-            steps { sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ." }
-        }
-
-        stage('Docker Push') {
             steps {
-                withCredentials([string(credentialsId: 'dockerhub-token', variable: 'TOKEN')]) {
-                    sh "echo $TOKEN | docker login -u kanishka --password-stdin"
+                sh './mvnw clean package -DskipTests'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh './mvnw test'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', 
+                                                  usernameVariable: 'DOCKERHUB_USER', 
+                                                  passwordVariable: 'DOCKERHUB_PASS')]) {
+                    sh "echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin"
+                    sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
-                sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
 
         stage('Deploy') {
             steps {
-                sshagent(['deployment-server']) {
-                    sh '''
-                      ssh ubuntu@server "docker pull ${IMAGE_NAME}:${IMAGE_TAG}"
-                      ssh ubuntu@server "docker compose -f /deploy/docker-compose.yml up -d backend"
-                    '''
-                }
+                sh "docker compose down"
+                sh "docker compose up -d --build"
             }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }

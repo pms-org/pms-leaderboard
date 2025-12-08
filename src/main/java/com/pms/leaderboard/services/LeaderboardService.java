@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -28,9 +27,7 @@ public class LeaderboardService {
 
     @Autowired
     private StringRedisTemplate redis;
-
-    // private final ConcurrentLinkedQueue<MessageDTO> pending = new ConcurrentLinkedQueue<>();
-
+    
     @Autowired
     LeaderboardRepository currentRepo;
 

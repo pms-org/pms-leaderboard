@@ -12,9 +12,8 @@ import org.springframework.stereotype.Service;
 
 import com.pms.leaderboard.Handler.WebSocketHandler;
 import com.pms.leaderboard.dto.MessageDTO;
-import com.pms.leaderboard.proto.RiskEvent;
 import com.pms.leaderboard.services.LeaderboardService;
-
+import com.pms.leaderboard.proto.RiskEvent;
 import tools.jackson.databind.ObjectMapper;
 
 @Service
@@ -22,9 +21,6 @@ public class AnalyticsConsumer {
 
     @Autowired
     WebSocketHandler handler;
-
-    // @Autowired
-    // ObjectMapper mapper;
 
     @Autowired
     LeaderboardService leaderboardService;
@@ -42,9 +38,6 @@ public class AnalyticsConsumer {
 
         leaderboardService.processBatch(dtoList);
     }
-
-    
-    //Map Protobuf RiskEvent -> internal MessageDTO
 
     private MessageDTO toDto(RiskEvent e) {
         UUID pid = UUID.fromString(e.getPortfolioId());

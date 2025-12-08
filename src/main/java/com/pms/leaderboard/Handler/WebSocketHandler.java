@@ -31,13 +31,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
         sessions.remove(session);
     }
 
-    // public void broadcast(String message) throws Exception {
-    //     for (WebSocketSession session : sessions) {
-    //         session.sendMessage(new TextMessage(message));
-    //     }
-    // }
-
-    // Broadcast a POJO or a string
     public void broadcast(Object payload) {
         try {
             String text = (payload instanceof String) ? (String) payload : mapper.writeValueAsString(payload);
@@ -46,7 +39,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 try {
                     if (s.isOpen()) s.sendMessage(msg);
                 } catch (Exception e) {
-                    // ignore individual send failures
                 }
             });
         } catch (Exception e) {

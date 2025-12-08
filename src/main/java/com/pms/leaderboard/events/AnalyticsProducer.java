@@ -12,18 +12,11 @@ import org.springframework.stereotype.Service;
 import com.pms.leaderboard.dto.MessageDTO;
 import com.pms.leaderboard.proto.RiskEvent;
 
-import tools.jackson.databind.ObjectMapper;
-
 @Service
 public class AnalyticsProducer {
-
-    // private static final String TOPIC = "portfolio-metrics";
     
     @Autowired
     KafkaTemplate<String, RiskEvent> riskEventKafkaTemplate;
-
-    // @Autowired
-    // ObjectMapper mapper;
 
     private final UUID[] portfolioIds = {
         UUID.fromString("b3a1f250-0d4f-4b53-b0c9-651be64225f9"),
@@ -44,14 +37,6 @@ public class AnalyticsProducer {
         UUID pid = portfolioIds[index % portfolioIds.length];
         index++;
 
-        // MessageDTO event = new MessageDTO(
-        //     pid,
-        //     random(1.0, 5.0),   
-        //     random(0.1, 3.0),  
-        //     random(0.1, 1.5), 
-        //     LocalDateTime.now()
-        // );
-                // generate some random metrics
         BigDecimal sharpe  = random(1.0, 5.0);
         BigDecimal sortino = random(0.1, 3.0);
         BigDecimal avgRor  = random(0.1, 1.5);

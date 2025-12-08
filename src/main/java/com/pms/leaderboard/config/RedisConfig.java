@@ -8,11 +8,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 
 @Configuration
 public class RedisConfig {
-    
+
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
-        // defaults to localhost:6379 (overridden by spring.redis properties if present)
-        return new LettuceConnectionFactory();
+        return new LettuceConnectionFactory("redis", 6379);
     }
 
     @Bean

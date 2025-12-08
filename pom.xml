@@ -116,6 +116,18 @@
     <build>
         <plugins>
             <plugin>
+            <groupId>kr.motd.maven</groupId>
+            <artifactId>os-maven-plugin</artifactId>
+            <version>1.7.1</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>detect</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
 				                <configuration>
@@ -141,35 +153,33 @@
                 </executions>
             </plugin>
 			<plugin>
-                <groupId>org.xolstice.maven.plugins</groupId>
-                <artifactId>protobuf-maven-plugin</artifactId>
-                <version>0.6.1</version>
+    <groupId>org.xolstice.maven.plugins</groupId>
+    <artifactId>protobuf-maven-plugin</artifactId>
+    <version>0.6.1</version>
+    <configuration>
+        <protoSourceRoot>${project.basedir}/src/main/proto</protoSourceRoot>
+        <outputDirectory>${project.build.directory}/generated-sources/protobuf/java</outputDirectory>
+        
+        <protocArtifact>
+            com.google.protobuf:protoc:3.25.3:exe:${os.detected.classifier}
+        </protocArtifact>
 
-                <configuration>
-                    <!-- Where your .proto files live -->
-                    <protoSourceRoot>${project.basedir}/src/main/proto</protoSourceRoot>
+        <pluginArtifact>
+            io.grpc:protoc-gen-grpc-java:1.62.2:exe:${os.detected.classifier}
+        </pluginArtifact>
+    </configuration>
 
-                    <!-- Where generated Java classes go -->
-                    <outputDirectory>
-                        ${project.build.directory}/generated-sources/protobuf/java
-                    </outputDirectory>
+    <executions>
+        <execution>
+            <id>compile-protobuf</id>
+            <phase>generate-sources</phase>
+            <goals>
+                <goal>compile</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
 
-                    <!-- Protoc version to match protobuf-java -->
-                    <protocArtifact>
-                        com.google.protobuf:protoc:3.25.3:exe:windows-x86_64
-                    </protocArtifact>
-                </configuration>
-
-                <executions>
-                    <execution>
-                        <id>compile-protobuf</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 
