@@ -67,7 +67,10 @@ services:
       SPRING_PROFILES_ACTIVE: docker
 
   jenkins:
-    image: jenkins/jenkins:lts
+    # image: jenkins/jenkins:lts
+    build: 
+      context: ./jenkins
+      dockerfile: Dockerfile.jenkins
     container_name: jenkins
     user: root
     ports:
