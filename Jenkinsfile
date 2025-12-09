@@ -14,19 +14,23 @@ pipeline {
             }
         }
 
-        stages {
-            stage('Build') {
-                steps {
-                    sh 'java -version'
-                    sh 'mvn -version'
-                    sh 'mvn clean package -DskipTests'
+        stage('Maven Build') {
+            agent {
+                docker {
+                    image 'maven:3.9.6-eclipse-temurin-21'
+                    args '-v /root/.m2:/root/.m2'
                 }
+            }
+            steps {
+                sh 'java -version'
+                sh 'mvn -version'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
         stage('Docker Clean Containers') {
             steps {
-                sh 'docker compose down -v'
+                sh 'docker compose down -v || true'
             }
         }
 
@@ -43,8 +47,6 @@ pipeline {
                         passwordVariable: 'DOCKERHUB_PASS')]) {
 
                     sh "echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin"
-
-                    // Tag and Push
                     sh "docker tag pms-leaderboard-backend ${DOCKER_IMAGE}:${DOCKER_TAG}"
                     sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
