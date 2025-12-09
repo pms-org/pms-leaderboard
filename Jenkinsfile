@@ -14,13 +14,12 @@ pipeline {
         //     }
         // }
 
-        stage('Maven Build') 
-        {
-            steps 
-            {
+        stage('Maven Build') {
+            steps {
                 sh "docker run --rm -v ${WORKSPACE}:/app -w /app maven:3.9.6-eclipse-temurin-21 mvn clean package -DskipTests"
             }
         }
+
 
         stage('Docker Clean Containers') {
             steps {
