@@ -22,13 +22,13 @@ pipeline {
 
         stage('Docker Clean Containers') {
             steps {
-                sh 'docker compose down -v'
+                sh 'docker compose down -v || true'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker compose build --no-cache"
+                sh 'docker compose build --no-cache'
             }
         }
 
@@ -38,9 +38,9 @@ pipeline {
                         usernameVariable: 'DOCKERHUB_USER',
                         passwordVariable: 'DOCKERHUB_PASS')]) {
 
-                    sh "echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin"
+                    sh 'echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin'
 
-                    // Tag and Push
+                    // Tag backend container image and push
                     sh "docker tag pms-leaderboard-backend ${DOCKER_IMAGE}:${DOCKER_TAG}"
                     sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
@@ -49,8 +49,8 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh "docker compose up -d"
-                sh "docker ps"
+                sh 'docker compose up -d'
+                sh 'docker ps'
             }
         }
     }
