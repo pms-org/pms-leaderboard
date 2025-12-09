@@ -16,15 +16,12 @@ pipeline {
 
         stage('Maven Build') {
             steps {
-                script {
-                    docker.image('maven:3.9.6-eclipse-temurin-21').inside('-v /root/.m2:/root/.m2') {
-                        sh 'java -version'
-                        sh 'mvn -version'
-                        sh 'mvn clean package -DskipTests'
-                    }
-                }
+                sh '''
+                docker run --rm -v $PWD:/app -w /app maven:3.9.6-eclipse-temurin-21 mvn clean package -DskipTests
+                '''
             }
         }
+
 
         stage('Docker Clean Containers') {
             steps {
