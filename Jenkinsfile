@@ -7,6 +7,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/pms-org/pms-leaderboard.git'
@@ -15,37 +16,41 @@ pipeline {
 
         stage('Maven Build') {
             steps {
-                // Run Maven inside Docker to build the jar
-                sh "docker run --rm -v ${WORKSPACE}:/app -w /app maven:3.9.6-eclipse-temurin-21 mvn clean package -DskipTests"
+                sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Stop & Clean Containers') {
+        stage('Docker Clean Containers') {
             steps {
-                sh 'docker compose down -v || true'
+                sh 'docker compose down -v'
             }
         }
 
-        stage('Build & Deploy Containers') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker compose build --no-cache'
-                sh 'docker compose up -d'
-                sh 'docker ps'
+                sh "docker compose build --no-cache"
             }
         }
 
-        stage('Optional: Push Backend Image') {
-            when {
-                branch 'main'
-            }
+        stage('Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
                         usernameVariable: 'DOCKERHUB_USER',
                         passwordVariable: 'DOCKERHUB_PASS')]) {
+
                     sh "echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin"
+
+                    // Tag and Push
                     sh "docker tag pms-leaderboard-backend ${DOCKER_IMAGE}:${DOCKER_TAG}"
                     sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh "docker compose up -d"
+                sh "docker ps"
             }
         }
     }
@@ -53,14 +58,6 @@ pipeline {
     post {
         always {
             cleanWs()
-        }
-
-        success {
-            echo "Build and deployment succeeded!"
-        }
-
-        failure {
-            echo "Build failed."
         }
     }
 }

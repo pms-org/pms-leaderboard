@@ -37,9 +37,6 @@ public class LeaderboardService {
     @Autowired
     WebSocketHandler wsHandler;
 
-    /**
-     * Called once by Kafka Consumer batch for all messages in this poll
-     */
     public void processBatch(List<MessageDTO> batchList) {
 
         if (batchList == null || batchList.isEmpty())
@@ -48,7 +45,6 @@ public class LeaderboardService {
         String zkey = "leaderboard:global:daily";
         ZSetOperations<String, String> zset = redis.opsForZSet();
 
-        // keep latest per portfolio within just this batch
         Map<UUID, MessageDTO> latest = new HashMap<>();
 
         for (MessageDTO m : batchList) {
