@@ -14,13 +14,13 @@ pipeline {
         //     }
         // }
 
-        stage('Maven Build') {
-            steps {
-                sh "docker run --rm -v ${WORKSPACE}:/app -w /app maven:3.9.6-eclipse-temurin-21 mvn clean package -DskipTests"
+        stage('Maven Build') 
+        {
+            steps 
+            {
+                sh "docker run --rm -v ${WORKSPACE}:/app -w /app/backend maven:3.9.6-eclipse-temurin-21 mvn clean package -DskipTests"
             }
         }
-
-
 
         stage('Docker Clean Containers') {
             steps {
@@ -30,9 +30,10 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker compose build --no-cache"
+                sh "docker compose -f docker-compose.yml build --no-cache"
             }
         }
+
 
         stage('Push Docker Image') {
             steps {
