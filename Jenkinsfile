@@ -15,16 +15,14 @@ pipeline {
         }
 
         stage('Maven Build') {
-            agent {
-                docker {
-                    image 'maven:3.9.6-eclipse-temurin-21'
-                    args '-v /root/.m2:/root/.m2'
-                }
-            }
             steps {
-                sh 'java -version'
-                sh 'mvn -version'
-                sh 'mvn clean package -DskipTests'
+                script {
+                    docker.image('maven:3.9.6-eclipse-temurin-21').inside('-v /root/.m2:/root/.m2') {
+                        sh 'java -version'
+                        sh 'mvn -version'
+                        sh 'mvn clean package -DskipTests'
+                    }
+                }
             }
         }
 
