@@ -14,9 +14,13 @@ pipeline {
             }
         }
 
-        stage('Maven Build') {
-            steps {
-                sh 'mvn clean package -DskipTests'
+        stages {
+            stage('Build') {
+                steps {
+                    sh 'java -version'
+                    sh 'mvn -version'
+                    sh 'mvn clean package -DskipTests'
+                }
             }
         }
 
