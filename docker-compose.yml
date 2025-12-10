@@ -55,7 +55,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   backend:
-    build: .
+    image: kanishkapriya/pms-leaderboard-backend:${DOCKER_TAG:-latest}
     container_name: pms-leaderboard-backend
     depends_on:
       - postgres

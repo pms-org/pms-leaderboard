@@ -20,12 +20,6 @@ pipeline {
             }
         }
 
-        stage('Docker Clean Containers') {
-            steps {
-                sh 'docker compose down -v || true'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh 'docker compose build --no-cache'
@@ -49,8 +43,10 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh 'docker compose up -d'
-                sh 'docker ps'
+                // Ensure latest backend image is used and container recreated
+                sh "docker compose pull backend || true"
+                sh "docker compose up -d --force-recreate backend"
+                sh "docker ps"
             }
         }
     }
