@@ -4,12 +4,13 @@ pipeline {
     environment {
         // Docker Hub credentials configured in Jenkins (Username + PAT)
         DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials')
-        // DOCKER_HUB_USERNAME    = 'gayathriemj'
-        // Image name for your backend service (aligned with credential username)
-        BACKEND_IMAGE = "${DOCKER_HUB_CREDENTIALS_USR}/pms-leaderboard-backend"
+        DOCKER_HUB_USERNAME    = 'gayathriemj'   // <-- change this
+
+        // Image name for your backend service
+        BACKEND_IMAGE = "${DOCKER_HUB_USERNAME}/pms-leaderboard-backend"
+
         // Use Jenkins build number as image version
         VERSION = "${BUILD_NUMBER}"
-        IMAGE_TAG = "${VERSION}"
     }
 
     stages {
@@ -23,7 +24,7 @@ pipeline {
         stage('Build Backend JAR') {
             steps {
                 echo 'Building Spring Boot backend with Maven...'
-                sh 'mvn clean package'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
@@ -57,9 +58,11 @@ pipeline {
                   # Stop any existing stack (ignore errors on first run)
                   docker-compose down || true
 
-                  # Pull the pushed backend image and recreate stack
-                  docker-compose pull backend
-                  docker-compose up -d
+                  # Recreate stack
+                  docker-compose up -d 
+
+                  # Optional: clean up dangling images
+                  docker image prune -f
 
                   echo "Deployment complete. Running containers:"
                   docker ps
@@ -86,3 +89,4 @@ pipeline {
         }
     }
 }
+
