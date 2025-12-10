@@ -67,7 +67,6 @@ services:
       SPRING_PROFILES_ACTIVE: docker
 
   jenkins:
-    # image: jenkins/jenkins:lts
     build: 
       context: .
       dockerfile: Dockerfile.jenkins

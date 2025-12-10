@@ -7,7 +7,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 git branch: 'jenkins-pipeline-fix', url: 'https://github.com/pms-org/pms-leaderboard.git'
@@ -34,7 +33,6 @@ pipeline {
 
                     sh 'echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin'
 
-                    // Tag backend container image and push
                     sh "docker tag pms-leaderboard-backend ${DOCKER_IMAGE}:${DOCKER_TAG}"
                     sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
@@ -43,7 +41,6 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                // Ensure latest backend image is used and container recreated
                 sh "docker compose pull backend || true"
                 sh "docker compose up -d --force-recreate backend"
                 sh "docker ps"
