@@ -10,7 +10,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/pms-org/pms-leaderboard.git'
+                git branch: 'jenkins-pipeline-fix', git url: 'https://github.com/pms-org/pms-leaderboard.git'
             }
         }
 
