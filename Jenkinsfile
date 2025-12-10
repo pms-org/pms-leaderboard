@@ -55,11 +55,11 @@ pipeline {
                 echo 'Deploying locally using docker-compose.yml...'
                 sh """
                   # Stop any existing stack (ignore errors on first run)
-                  docker-compose down || true
+                  docker compose down || true
 
                   # Pull the pushed backend image and recreate stack
-                  docker-compose pull backend
-                  docker-compose up -d
+                  docker compose pull backend
+                  docker compose up -d
 
                   echo "Deployment complete. Running containers:"
                   docker ps
