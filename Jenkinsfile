@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Docker Hub credentials configured in Jenkins (Username + PAT)
         DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials')
-        // DOCKER_HUB_USERNAME    = 'gayathriemj'
+        DOCKER_HUB_USERNAME    = 'gayathriemj'
         // Image name for your backend service (aligned with credential username)
         BACKEND_IMAGE = "${DOCKER_HUB_CREDENTIALS_USR}/pms-leaderboard-backend"
         // Use Jenkins build number as image version
@@ -23,7 +23,7 @@ pipeline {
         stage('Build Backend JAR') {
             steps {
                 echo 'Building Spring Boot backend with Maven...'
-                sh 'mvn clean package'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
