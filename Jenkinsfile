@@ -10,7 +10,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                url: 'https://github.com/pms-org/pms-leaderboard.git'
+                git url: 'https://github.com/pms-org/pms-leaderboard.git'
             }
         }
 
