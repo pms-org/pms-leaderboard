@@ -2,12 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // Docker Hub credentials configured in Jenkins (Username + PAT)
         DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials')
-        DOCKER_HUB_USERNAME    = 'gayathriemj'
-        // Image name for your backend service (aligned with credential username)
         BACKEND_IMAGE = "${DOCKER_HUB_CREDENTIALS_USR}/pms-leaderboard-backend"
-        // Use Jenkins build number as image version
         VERSION = "${BUILD_NUMBER}"
         IMAGE_TAG = "${VERSION}"
     }
