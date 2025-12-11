@@ -47,7 +47,7 @@ public class AnalyticsConsumer {
                 BigDecimal.valueOf(e.getSharpeRatio()),
                 BigDecimal.valueOf(e.getSortinoRatio()),
                 BigDecimal.valueOf(e.getAvgRateOfReturn()),
-                LocalDateTime.now() // or add a timestamp field to proto later
+                LocalDateTime.now() 
         );
     }
 
