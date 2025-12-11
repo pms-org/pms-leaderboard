@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -38,9 +40,8 @@ public class LeaderboardService {
     @Autowired
     WebSocketHandler wsHandler;
 
-    /**
-     * Called once by Kafka Consumer batch for all messages in this poll
-     */
+    private static final Logger log = LoggerFactory.getLogger(LeaderboardService.class);
+
     public void processBatch(List<MessageDTO> batchList) {
 
         if (batchList == null || batchList.isEmpty())
@@ -49,7 +50,6 @@ public class LeaderboardService {
         String zkey = "leaderboard:global:daily";
         ZSetOperations<String, String> zset = redis.opsForZSet();
 
-        // keep latest per portfolio within just this batch
         Map<UUID, MessageDTO> latest = new HashMap<>();
 
         for (MessageDTO m : batchList) {
@@ -61,24 +61,41 @@ public class LeaderboardService {
             UUID pid = m.getPortfolioId();
             BigDecimal score = computeScore(m);
 
-            Instant stamp = (m.getTimeStamp() == null) ? Instant.now()
+            Instant stamp = (m.getTimeStamp() == null)
+                    ? Instant.now()
                     : m.getTimeStamp().atZone(ZoneOffset.UTC).toInstant();
 
             double rScore = composeRedisScore(score, stamp, pid);
 
-            zset.add(zkey, pid.toString(), rScore);
+            // writing to redis if fails db
+            boolean redisOk = true;
+            try {
+                zset.add(zkey, pid.toString(), rScore);
+            } catch (Exception ex) {
+                redisOk = false;
+                log.error("REDIS FAILED during zset.add for portfolio {}", pid, ex);
+            }
 
-            // ranking
-            Long rankPos = zset.reverseRank(zkey, pid.toString());
-            long rank = (rankPos == null) ? -1L : rankPos + 1L;
+            // TRY GET RANK FROM REDIS, FALLBACK TO DB
+            long rank = -1;
+            if (redisOk) {
+                try {
+                    Long rankPos = zset.reverseRank(zkey, pid.toString());
+                    rank = (rankPos == null) ? -1 : rankPos + 1;
+                } catch (Exception ex) {
+                    log.error("Redis rank fetch failed, fallback to DB rank for {}", pid);
+                    rank = computeRankFromDB(score);
+                }
+            } else {
+                rank = computeRankFromDB(score);
+            }
 
-            // Write current leaderboard row
-            Leaderboard cur = currentRepo.findByPortfolioId(pid)
-                    .orElseGet(() -> {
-                        Leaderboard lb = new Leaderboard();
-                        lb.setPortfolioId(pid);
-                        return lb;
-                    });
+            //  CURRENT UPDATE
+            Leaderboard cur = currentRepo.findByPortfolioId(pid).orElseGet(() -> {
+                Leaderboard lb = new Leaderboard();
+                lb.setPortfolioId(pid);
+                return lb;
+            });
 
             cur.setPortfolioScore(score);
             cur.setLeaderboardRanking(rank);
@@ -88,7 +105,7 @@ public class LeaderboardService {
             cur.setUpdatedAt(Instant.now());
             currentRepo.save(cur);
 
-            // Snapshot history row
+            // SNAPSHOT — HISTORY DB
             Leaderboard_Snapshot snap = new Leaderboard_Snapshot();
             snap.setHistoryId(UUID.randomUUID());
             snap.setPortfolioId(pid);
@@ -99,37 +116,30 @@ public class LeaderboardService {
             snap.setSortinoRatio(m.getSortinoRatio());
             snap.setUpdatedAt(Instant.now());
             snapshotRepo.save(snap);
+
         }
 
         broadcastLeaderboard(zkey);
     }
 
+    private long computeRankFromDB(BigDecimal score) {
+        try {
+            return currentRepo.countByPortfolioScoreGreaterThan(score) + 1;
+        } catch (Exception e) {
+            log.error("DB rank fallback failed!", e);
+            return -1;
+        }
+    }
+
     private void broadcastLeaderboard(String key) {
 
-        ZSetOperations<String, String> zset = redis.opsForZSet();
-        Set<ZSetOperations.TypedTuple<String>> top = zset.reverseRangeWithScores(key, 0, 49);
+        List<Map<String, Object>> response;
 
-        List<Map<String, Object>> response = new ArrayList<>();
-        if (top != null) {
-            int rank = 1;
-            for (ZSetOperations.TypedTuple<String> t : top) {
-                Map<String, Object> r = new HashMap<>();
-                r.put("rank", rank++);
-                r.put("portfolioId", t.getValue());
-                r.put("compositeScore", t.getScore());
-                try {
-                    UUID pid = UUID.fromString(t.getValue());
-                    currentRepo.findByPortfolioId(pid).ifPresent(lb -> {
-                        r.put("avgReturn", lb.getAvgRateOfReturn());
-                        r.put("sharpe", lb.getSharpeRatio());
-                        r.put("sortino", lb.getSortinoRatio());
-                        r.put("updatedAt", lb.getUpdatedAt());
-                    });
-                } catch (Exception ex) {
-                }
-
-                response.add(r);
-            }
+        try {
+            response = fetchTopFromRedis(key);
+        } catch (Exception e) {
+            log.error("Redis fetch failed! Broadcasting top from DB instead.");
+            response = fetchTopFromDB();
         }
 
         Map<String, Object> envelope = new HashMap<>();
@@ -138,7 +148,59 @@ public class LeaderboardService {
         envelope.put("top", response);
 
         wsHandler.broadcast(envelope);
-        System.out.println("Broadcasted snapshot: " + response.size());
+        log.info("Broadcasted snapshot: {}", response.size());
+    }
+
+    private List<Map<String, Object>> fetchTopFromRedis(String key) {
+        ZSetOperations<String, String> zset = redis.opsForZSet();
+        Set<ZSetOperations.TypedTuple<String>> top = zset.reverseRangeWithScores(key, 0, 49);
+
+        List<Map<String, Object>> response = new ArrayList<>();
+
+        if (top == null)
+            return response;
+
+        int rank = 1;
+        for (ZSetOperations.TypedTuple<String> t : top) {
+            UUID pid = UUID.fromString(t.getValue());
+            Map<String, Object> r = new HashMap<>();
+
+            r.put("rank", rank++);
+            r.put("portfolioId", pid.toString());
+            r.put("compositeScore", t.getScore());
+
+            currentRepo.findByPortfolioId(pid).ifPresent(lb -> {
+                r.put("avgReturn", lb.getAvgRateOfReturn());
+                r.put("sharpe", lb.getSharpeRatio());
+                r.put("sortino", lb.getSortinoRatio());
+                r.put("updatedAt", lb.getUpdatedAt());
+            });
+
+            response.add(r);
+        }
+
+        return response;
+    }
+
+    private List<Map<String, Object>> fetchTopFromDB() {
+        List<Leaderboard> rows = currentRepo.findTop50ByOrderByPortfolioScoreDesc();
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        int rank = 1;
+
+        for (Leaderboard lb : rows) {
+            Map<String, Object> r = new HashMap<>();
+            r.put("rank", rank++);
+            r.put("portfolioId", lb.getPortfolioId());
+            r.put("score", lb.getPortfolioScore());
+            r.put("avgReturn", lb.getAvgRateOfReturn());
+            r.put("sharpe", lb.getSharpeRatio());
+            r.put("sortino", lb.getSortinoRatio());
+            r.put("updatedAt", lb.getUpdatedAt());
+            list.add(r);
+        }
+
+        return list;
     }
 
     private BigDecimal computeScore(MessageDTO e) {
