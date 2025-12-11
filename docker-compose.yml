@@ -55,7 +55,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   backend:
-    image: ${BACKEND_IMAGE:pms-leaderboard-backend}:${IMAGE_TAG:-latest}
+    image: $BACKEND_IMAGE:$IMAGE_TAG
     container_name: pms-leaderboard-backend
     depends_on:
       - postgres
