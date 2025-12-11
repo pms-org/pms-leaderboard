@@ -16,12 +16,6 @@ pipeline {
             }
         }
 
-        stage('Build Backend JAR') {
-            steps {
-                echo 'Building Spring Boot backend with Maven...'
-                sh 'mvn clean package -DskipTests'
-            }
-        }
 
         stage('Build Docker Image') {
             steps {
@@ -53,7 +47,8 @@ pipeline {
                   # Stop any existing stack (ignore errors on first run)
                   docker compose down || true
 
-                  # Pull the pushed backend image and recreate stack
+                  # Pull the pushed backend image (backend refers to backend service in docker compose, hence that image is being pulled)
+                  # and recreate stack
                   docker compose pull backend
                   docker compose up -d
 
