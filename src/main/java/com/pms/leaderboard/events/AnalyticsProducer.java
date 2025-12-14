@@ -46,14 +46,14 @@ public class AnalyticsProducer {
         UUID.fromString("18ee55ff-2222-4e53-b0c9-555599775533"),
         UUID.fromString("d59ff66a-3333-4f53-c0c9-666600886644"),
 
-        UUID.fromString("ena1f250-0d4f-4b53-b0c9-651be64225f9"),
+        UUID.fromString("eea1f250-0d4f-4b53-b0c9-651be64225f9"),
         UUID.fromString("a4b9f250-1a1d-4b53-c0c9-1111e64225f8"),
         UUID.fromString("f7b2c3d4-9876-4321-baaa-998877665544"),
         UUID.fromString("27bb22cc-1234-4a53-b0c9-222266442299"),
         UUID.fromString("54cc33dd-5678-4c53-c0c9-333377553311"),
         UUID.fromString("877dd44e-1111-4d53-a0c9-444488664422"),
-        UUID.fromString("0l8e55ff-2222-4e53-b0c9-555599775533"),
-        UUID.fromString("3t9f66aa-3333-4f53-c0c9-666600886644")
+        UUID.fromString("0e8e55ff-2222-4e53-b0c9-555599775533"),
+        UUID.fromString("3f9f66aa-3333-4f53-c0c9-666600886644")
     };
 
     private int index = 0;
