@@ -9,10 +9,24 @@ pipeline {
     }
 
     stages {
+
+        stage('Clean Workspace') {
+            steps {
+                echo 'Cleaning Jenkins workspace...'
+                deleteDir()
+            }
+        }
+
         stage('Checkout') {
             steps {
                 echo 'Checking out code from GitHub...'
                 checkout scm
+            }
+        }
+
+        stage('Maven Build') {
+            steps {
+                sh 'mvn clean package -DskipTests'
             }
         }
 
@@ -21,7 +35,7 @@ pipeline {
             steps {
                 echo 'Building Docker image for backend...'
                 sh """
-                  docker build \
+                  docker build --no-cache \
                     -t ${BACKEND_IMAGE}:${VERSION} \
                     -t ${BACKEND_IMAGE}:latest \
                     .

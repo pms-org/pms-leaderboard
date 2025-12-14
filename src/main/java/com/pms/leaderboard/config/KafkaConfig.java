@@ -16,6 +16,8 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.ContainerProperties;
+
 import com.pms.leaderboard.proto.RiskEvent;
 
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
@@ -55,6 +57,8 @@ public class KafkaConfig {
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         config.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
+        config.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 250);
+        config.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 500_000);
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
@@ -66,6 +70,7 @@ public class KafkaConfig {
         factory.setBatchListener(true);
         factory.setConcurrency(4);
         factory.getContainerProperties().setPollTimeout(3000);
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.BATCH);
         return factory;
     }
 }

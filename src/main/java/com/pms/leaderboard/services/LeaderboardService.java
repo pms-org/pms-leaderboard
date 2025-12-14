@@ -97,7 +97,7 @@ public class LeaderboardService {
                 } catch (Exception ex) {
                     redisDown = true;
                     rebuildService.markRedisDown();
-                    log.error("❌ Redis rank fetch failed → fallback DB rank for {}", pid);
+                    log.error("Redis rank fetch failed → fallback DB rank for {}", pid);
                     rank = computeRankFromDB(score);
                 }
             } else {
@@ -142,7 +142,7 @@ public class LeaderboardService {
         try {
             return currentRepo.countByPortfolioScoreGreaterThan(score) + 1;
         } catch (Exception e) {
-            log.error("❌ DB rank fallback failed!", e);
+            log.error(" DB rank fallback failed!", e);
             return -1;
         }
     }
@@ -158,7 +158,7 @@ public class LeaderboardService {
             } catch (Exception e) {
                 redisDown = true;
                 rebuildService.markRedisDown();
-                log.error("❌ Redis fetch failed → falling back to DB");
+                log.error("Redis fetch failed → falling back to DB");
             }
         }
 
