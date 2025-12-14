@@ -26,12 +26,30 @@ public class AnalyticsProducer {
         UUID.fromString("66cc33dd-5678-4c53-c0c9-333377553311"),
         UUID.fromString("77dd44ee-1111-4d53-a0c9-444488664422"),
         UUID.fromString("88ee55ff-2222-4e53-b0c9-555599775533"),
-        UUID.fromString("99ff66aa-3333-4f53-c0c9-666600886644")
+        UUID.fromString("99ff66aa-3333-4f53-c0c9-666600886644"),
+
+        UUID.fromString("wa1f250-0d4f-4b53-b0c9-651be64225f9"),
+        UUID.fromString("v0b9f250-1a1d-4b53-c0c9-1111e64225f8"),
+        UUID.fromString("x2b2c3d4-9876-4321-baaa-998877665544"),
+        UUID.fromString("z7bb22cc-1234-4a53-b0c9-222266442299"),
+        UUID.fromString("r4cc33dd-5678-4c53-c0c9-333377553311"),
+        UUID.fromString("k77dd44ee-1111-4d53-a0c9-444488664422"),
+        UUID.fromString("p8ee55ff-2222-4e53-b0c9-555599775533"),
+        UUID.fromString("g59ff66aa-3333-4f53-c0c9-666600886644"),
+
+        UUID.fromString("e331f250-0d4f-4b53-b0c9-651be64225f9"),
+        UUID.fromString("m5vb9f250-1a1d-4b53-c0c9-1111e64225f8"),
+        UUID.fromString("l32b2c3d4-9876-4321-baaa-998877665544"),
+        UUID.fromString("o7bb22cc-1234-4a53-b0c9-222266442299"),
+        UUID.fromString("s4cc33dd-5678-4c53-c0c9-333377553311"),
+        UUID.fromString("e77dd44ee-1111-4d53-a0c9-444488664422"),
+        UUID.fromString("h8ee55ff-2222-4e53-b0c9-555599775533"),
+        UUID.fromString("qw59ff66aa-3333-4f53-c0c9-666600886644")
     };
 
     private int index = 0;
 
-    @Scheduled(fixedRate = 2000)
+    @Scheduled(fixedRate = 200)
     public void sendMessage() throws Exception {
 
         UUID pid = portfolioIds[index % portfolioIds.length];
