@@ -28,15 +28,15 @@ public class AnalyticsConsumer {
     @Autowired
     LeaderboardService leaderboardService;
 
-    @RetryableTopic(
-        attempts = "4",
-        autoCreateTopics = "true",
-        dltTopicSuffix = ".dlt",
-        include = {
-            RedisUnavailableException.class,
-            DatabaseWriteException.class
-        }
-    )
+    // @RetryableTopic(
+    //     attempts = "4",
+    //     autoCreateTopics = "true",
+    //     dltTopicSuffix = ".dlt",
+    //     include = {
+    //         RedisUnavailableException.class,
+    //         DatabaseWriteException.class
+    //     }
+    // )
     @KafkaListener(topics = "portfolio-metrics", groupId = "leaderboard-group", containerFactory = "kafkaListenerContainerFactory")
     public void consume(List<RiskEvent> events) {
 
