@@ -58,7 +58,7 @@ public class AnalyticsProducer {
 
     private int index = 0;
 
-    @Scheduled(fixedRate = 200)
+    @Scheduled(fixedRate = 250)
     public void sendMessage() throws Exception {
 
         UUID pid = portfolioIds[index % portfolioIds.length];
@@ -68,15 +68,13 @@ public class AnalyticsProducer {
         BigDecimal sortino = random(0.1, 3.0);
         BigDecimal avgRor  = random(0.1, 1.5);
 
-        // Build Protobuf event
         RiskEvent event = RiskEvent.newBuilder()
-                .setPortfolioId(pid.toString())                // string UUID
+                .setPortfolioId(pid.toString())             
                 .setSharpeRatio(sharpe.doubleValue())
                 .setSortinoRatio(sortino.doubleValue())
                 .setAvgRateOfReturn(avgRor.doubleValue())
                 .build();
 
-        // riskEventKafkaTemplate.send("portfolio-metrics", pid.toString(), mapper.writeValueAsString(event));
         riskEventKafkaTemplate.send("portfolio-metrics", pid.toString(), event);
         System.out.println("Sent Protobuf RiskEvent: " + event);
     }

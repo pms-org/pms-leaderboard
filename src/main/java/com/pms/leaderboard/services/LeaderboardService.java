@@ -24,7 +24,6 @@ import com.pms.leaderboard.entities.Leaderboard;
 import com.pms.leaderboard.entities.Leaderboard_Snapshot;
 import com.pms.leaderboard.exceptions.DataAccessException;
 import com.pms.leaderboard.exceptions.DatabaseWriteException;
-import com.pms.leaderboard.exceptions.RedisUnavailableException;
 import com.pms.leaderboard.exceptions.WebSocketBroadcastException;
 import com.pms.leaderboard.repositories.LeaderboardRepository;
 import com.pms.leaderboard.repositories.LeaderboardSnapshotRepository;
@@ -47,7 +46,10 @@ public class LeaderboardService {
     @Autowired
     RedisRecoveryService rebuildService;
 
-    private boolean redisDown = false;
+    @Autowired
+    RedisScoreService redisScoreService;
+
+    boolean RedisHealthy = rebuildService.isRedisHealthy();
     private static final Logger log = LoggerFactory.getLogger(LeaderboardService.class);
 
     public void processBatch(List<MessageDTO> batchList) {
@@ -71,33 +73,19 @@ public class LeaderboardService {
                     ? Instant.now()
                     : m.getTimeStamp().atZone(ZoneOffset.UTC).toInstant();
 
-            double rScore = composeRedisScore(score, stamp, pid);
+            double rScore = redisScoreService.compositeScore(score, stamp, pid);
+
+            long rank;
 
             // writing in redis
-            boolean redisOk = !redisDown;
-            if (!redisDown) {
+            if (!rebuildService.isRedisHealthy()) {
                 try {
                     zset.add(zkey, pid.toString(), rScore);
-                } catch (Exception ex) {
-                    redisOk = false;
-                    redisDown = true;
-                    rebuildService.markRedisDown();
-
-                    log.error(" Redis failed during zset.add for {}", pid, ex);
-                    throw new RedisUnavailableException("Redis failed during write", ex);
-                }
-            }
-
-            // rank fetching
-            long rank = -1;
-            if (redisOk) {
-                try {
                     Long r = zset.reverseRank(zkey, pid.toString());
                     rank = (r == null) ? -1 : r + 1;
                 } catch (Exception ex) {
-                    redisDown = true;
                     rebuildService.markRedisDown();
-                    log.error("Redis rank fetch failed → fallback DB rank for {}", pid);
+                    log.error("Redis failed for portfolio {}", pid, ex);
                     rank = computeRankFromDB(score);
                 }
             } else {
@@ -150,24 +138,21 @@ public class LeaderboardService {
     private void broadcastLeaderboard(String key) {
         List<Map<String, Object>> response;
 
-        if (!redisDown) {
+        if (rebuildService.isRedisHealthy()) {
             try {
                 response = fetchTopFromRedis(key);
                 wsHandler.broadcast(buildEnvelope(response));
                 return;
             } catch (Exception e) {
-                redisDown = true;
                 rebuildService.markRedisDown();
                 log.error("Redis fetch failed → falling back to DB");
             }
-        }
 
-        response = fetchTopFromDB();
-        try {
-            wsHandler.broadcast(buildEnvelope(response));
-        } catch (Exception ex) {
-            log.error("WebSocket broadcast failed", ex);
-            throw new WebSocketBroadcastException("Leaderboard broadcast failed", ex);
+            try {
+                wsHandler.broadcast(buildEnvelope(fetchTopFromDB()));
+            } catch (Exception ex) {
+                throw new WebSocketBroadcastException("Leaderboard broadcast failed", ex);
+            }
         }
     }
 
@@ -233,15 +218,6 @@ public class LeaderboardService {
         return e.getAvgRateOfReturn().multiply(BigDecimal.valueOf(100))
                 .add(e.getSharpeRatio().multiply(BigDecimal.valueOf(50)))
                 .add(e.getSortinoRatio().multiply(BigDecimal.valueOf(10)));
-    }
-
-    private double composeRedisScore(BigDecimal baseScore, Instant eventTime, UUID portfolioId) {
-        double base = baseScore.doubleValue();
-        long ts = eventTime.toEpochMilli();
-        double stampFraction = (ts % 1000) / 1e9;
-        int idHash = Math.abs(portfolioId.hashCode() % 1000);
-        double hashFrac = idHash / 1e12;
-        return base + stampFraction + hashFrac;
     }
 
     public List<Map<String, Object>> getTop(String boardKey, int topN) {

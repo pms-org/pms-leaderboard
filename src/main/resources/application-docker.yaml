@@ -37,3 +37,4 @@ server:
 logging:
   level:
     com.pms.leaderboard: DEBUG
+    com.pms.leaderboard.services: INFO

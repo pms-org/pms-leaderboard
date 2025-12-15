@@ -1,7 +1,7 @@
 package com.pms.leaderboard.services;
 
+import java.time.Instant;
 import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,10 +9,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
 import com.pms.leaderboard.entities.Leaderboard;
 import com.pms.leaderboard.repositories.LeaderboardRepository;
-
 
 @Service
 public class RedisRecoveryService {
@@ -25,31 +23,41 @@ public class RedisRecoveryService {
     @Autowired
     private LeaderboardRepository currentRepo;
 
-    private boolean redisWasDown = false;
+    @Autowired
+    RedisScoreService redisScoreService;
+
+    boolean redisDown = false;
 
     private final String zkey = "leaderboard:global:daily";
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 3000)
     public void heartbeat() {
         try {
-            redis.opsForValue().get("ping"); // heartbeat check
+            redis.execute((org.springframework.data.redis.core.RedisCallback<Void>) connection -> {
+                connection.ping();
+                return null;
+            });
 
-            if (redisWasDown) {
-                log.warn("🔄 Redis is back! Rebuilding leaderboard zset…");
+            if (redisDown) {
+                log.warn(" Redis is back! Rebuilding leaderboard zset…");
                 rebuild();
-                redisWasDown = false;
+                redisDown = false;
             }
 
         } catch (Exception ex) {
-            if (!redisWasDown) {
-                log.error("❌ Redis connection lost!");
+            if (!redisDown) {
+                log.error(" Redis connection lost!");
             }
-            redisWasDown = true;
+            redisDown = true;
         }
     }
 
+    public boolean isRedisHealthy() {
+        return !redisDown;
+    }
+
     public void markRedisDown() {
-        redisWasDown = true;
+        redisDown = true;
     }
 
     private void rebuild() {
@@ -58,16 +66,25 @@ public class RedisRecoveryService {
             redis.delete(zkey);
 
             List<Leaderboard> all = currentRepo.findAll();
+            Instant now = Instant.now();
+
             for (Leaderboard lb : all) {
-                double composite = lb.getPortfolioScore().doubleValue();
+                if (lb.getPortfolioScore() == null)
+                    continue;
+
+                double composite = redisScoreService.compositeScore(
+                        lb.getPortfolioScore(),
+                        now,
+                        lb.getPortfolioId());
+
                 zset.add(zkey, lb.getPortfolioId().toString(), composite);
             }
 
-            log.info("✅ Redis leaderboard zset rebuilt, {} entries", all.size());
+            log.info("Redis leaderboard zset rebuilt, {} entries", all.size());
 
         } catch (Exception ex) {
-            log.error("❌ Failed rebuilding Redis ZSET", ex);
+            log.error("Failed rebuilding Redis ZSET", ex);
         }
     }
-}
 
+}

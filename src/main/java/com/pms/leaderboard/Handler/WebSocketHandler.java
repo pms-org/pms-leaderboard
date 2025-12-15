@@ -3,12 +3,15 @@ package com.pms.leaderboard.Handler;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import com.pms.leaderboard.exceptions.WebSocketBroadcastException;
 
 import tools.jackson.databind.ObjectMapper;
 
@@ -38,11 +41,12 @@ public class WebSocketHandler extends TextWebSocketHandler {
             sessions.forEach(s -> {
                 try {
                     if (s.isOpen()) s.sendMessage(msg);
-                } catch (Exception e) {
+                } catch (Exception ex) {
+                    throw new WebSocketBroadcastException("WebSocket session not found: " , ex);
                 }
             });
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ex) {
+            throw new WebSocketBroadcastException("WebSocket broadcast not done: " , ex);
         }
     }
 }
