@@ -2,17 +2,13 @@ package com.pms.leaderboard.Handler;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-
 import com.pms.leaderboard.exceptions.WebSocketBroadcastException;
-
 import tools.jackson.databind.ObjectMapper;
 
 @Component

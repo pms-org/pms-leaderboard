@@ -4,20 +4,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.stereotype.Service;
-
 import com.pms.leaderboard.Handler.WebSocketHandler;
 import com.pms.leaderboard.dto.MessageDTO;
-import com.pms.leaderboard.exceptions.DatabaseWriteException;
-import com.pms.leaderboard.exceptions.RedisUnavailableException;
 import com.pms.leaderboard.services.LeaderboardService;
 import com.pms.leaderboard.proto.RiskEvent;
-import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class AnalyticsConsumer {
@@ -28,15 +21,6 @@ public class AnalyticsConsumer {
     @Autowired
     LeaderboardService leaderboardService;
 
-    // @RetryableTopic(
-    //     attempts = "4",
-    //     autoCreateTopics = "true",
-    //     dltTopicSuffix = ".dlt",
-    //     include = {
-    //         RedisUnavailableException.class,
-    //         DatabaseWriteException.class
-    //     }
-    // )
     @KafkaListener(topics = "portfolio-metrics", groupId = "leaderboard-group", containerFactory = "kafkaListenerContainerFactory")
     public void consume(List<RiskEvent> events) {
 
