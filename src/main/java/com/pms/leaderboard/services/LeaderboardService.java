@@ -136,7 +136,7 @@ public class LeaderboardService {
     // private void broadcastLeaderboard(String key) {
     // List<Map<String, Object>> response;
 
-    // if (rebuildService.isRedisHealthy()) {
+    // if (!rebuildService.isRedisHealthy()) {
     // try {
     // response = fetchTopFromRedis(key);
     // wsHandler.broadcast(buildEnvelope(response));

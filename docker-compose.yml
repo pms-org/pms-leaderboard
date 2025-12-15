@@ -45,6 +45,7 @@ services:
     container_name: pms-leaderboard-redis
     ports:
       - "6379:6379"
+    restart: unless-stopped
 
   postgres:
     image: postgres:15
