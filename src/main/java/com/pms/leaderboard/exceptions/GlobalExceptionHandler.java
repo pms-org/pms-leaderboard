@@ -1,14 +1,12 @@
 package com.pms.leaderboard.exceptions;
 
-import org.apache.kafka.common.protocol.types.Field.Str;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.dao.DataAccessException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -54,7 +52,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGeneric(Exception ex) {
-        log.warn("Generic exception: {}", ex);
+        log.warn("Generic exception", ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Unexpected error occurred");

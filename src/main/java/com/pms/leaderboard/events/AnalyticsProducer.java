@@ -2,10 +2,12 @@ package com.pms.leaderboard.events;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
 import com.pms.leaderboard.proto.RiskEvent;
 
 @Service
@@ -54,7 +56,7 @@ public class AnalyticsProducer {
 
     private int index = 0;
 
-    @Scheduled(initialDelay =  30000, fixedRate = 2500)
+    @Scheduled(fixedRate = 5000)
     public void sendMessage() throws Exception {
 
         UUID pid = portfolioIds[index % portfolioIds.length];
