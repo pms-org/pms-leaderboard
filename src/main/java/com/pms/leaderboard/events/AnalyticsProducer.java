@@ -54,7 +54,7 @@ public class AnalyticsProducer {
 
     private int index = 0;
 
-    @Scheduled(fixedRate = 250)
+    @Scheduled(fixedRate = 2500)
     public void sendMessage() throws Exception {
 
         UUID pid = portfolioIds[index % portfolioIds.length];
