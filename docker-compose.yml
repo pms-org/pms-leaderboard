@@ -29,7 +29,7 @@ services:
     depends_on:
       - kafka
     ports:
-      - "8081:8081"
+      - "8082:8081"
     environment:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081  
@@ -55,7 +55,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   backend:
-    image: $BACKEND_IMAGE:$IMAGE_TAG
+    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
     container_name: pms-leaderboard-backend
     depends_on:
       - postgres
