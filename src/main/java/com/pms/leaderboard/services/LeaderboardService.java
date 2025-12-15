@@ -10,19 +10,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
+
 import com.pms.leaderboard.Handler.WebSocketHandler;
 import com.pms.leaderboard.dto.MessageDTO;
 import com.pms.leaderboard.entities.Leaderboard;
 import com.pms.leaderboard.entities.Leaderboard_Snapshot;
 import com.pms.leaderboard.exceptions.DataAccessException;
 import com.pms.leaderboard.exceptions.DatabaseWriteException;
-import com.pms.leaderboard.exceptions.WebSocketBroadcastException;
 import com.pms.leaderboard.repositories.LeaderboardRepository;
 import com.pms.leaderboard.repositories.LeaderboardSnapshotRepository;
 
@@ -75,7 +76,7 @@ public class LeaderboardService {
             long rank;
 
             // writing in redis
-            if (!rebuildService.isRedisHealthy()) {
+            if (rebuildService.isRedisHealthy()) {
                 try {
                     zset.add(zkey, pid.toString(), rScore);
                     Long r = zset.reverseRank(zkey, pid.toString());
@@ -132,24 +133,36 @@ public class LeaderboardService {
         }
     }
 
+    // private void broadcastLeaderboard(String key) {
+    // List<Map<String, Object>> response;
+
+    // if (rebuildService.isRedisHealthy()) {
+    // try {
+    // response = fetchTopFromRedis(key);
+    // wsHandler.broadcast(buildEnvelope(response));
+    // return;
+    // } catch (Exception e) {
+    // rebuildService.markRedisDown();
+    // log.error("Redis fetch failed → falling back to DB");
+    // }
+
+    // try {
+    // wsHandler.broadcast(buildEnvelope(fetchTopFromDB()));
+    // } catch (Exception ex) {
+    // throw new WebSocketBroadcastException("Leaderboard broadcast failed", ex);
+    // }
+    // }
+    // }
     private void broadcastLeaderboard(String key) {
-        List<Map<String, Object>> response;
-
-        if (rebuildService.isRedisHealthy()) {
-            try {
-                response = fetchTopFromRedis(key);
-                wsHandler.broadcast(buildEnvelope(response));
-                return;
-            } catch (Exception e) {
-                rebuildService.markRedisDown();
-                log.error("Redis fetch failed → falling back to DB");
-            }
-
-            try {
+        try {
+            if (rebuildService.isRedisHealthy()) {
+                wsHandler.broadcast(buildEnvelope(fetchTopFromRedis(key)));
+            } else {
                 wsHandler.broadcast(buildEnvelope(fetchTopFromDB()));
-            } catch (Exception ex) {
-                throw new WebSocketBroadcastException("Leaderboard broadcast failed", ex);
             }
+        } catch (Exception e) {
+            rebuildService.markRedisDown();
+            wsHandler.broadcast(buildEnvelope(fetchTopFromDB()));
         }
     }
 

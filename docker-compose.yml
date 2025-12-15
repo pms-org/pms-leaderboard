@@ -31,9 +31,14 @@ services:
     ports:
       - "8082:8081"
     environment:
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081  
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/subjects >/dev/null 2>&1 || exit 1"]  
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   redis:
     image: redis:7
