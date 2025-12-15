@@ -1,15 +1,11 @@
 package com.pms.leaderboard.events;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.UUID;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import com.pms.leaderboard.dto.MessageDTO;
 import com.pms.leaderboard.proto.RiskEvent;
 
 @Service
