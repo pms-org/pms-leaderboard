@@ -154,7 +154,8 @@ public class LeaderboardService {
                 Map<String, Object> r = new HashMap<>();
                 r.put("rank", rank++);
                 r.put("portfolioId", pid);
-                r.put("score", h.get("score"));
+                r.put("composite score", t.getScore());
+                // r.put("score", h.get("score"));
                 r.put("sharpe", h.get("sharpe"));
                 r.put("sortino", h.get("sortino"));
                 r.put("avgReturn", h.get("avgReturn"));
@@ -192,7 +193,8 @@ public class LeaderboardService {
                 Map<String, Object> r = new HashMap<>();
                 r.put("rank", rank++);
                 r.put("portfolioId", pid);
-                r.put("score", h.get("score"));
+                r.put("composite score", t.getScore());
+                // r.put("score", h.get("score"));
                 r.put("sharpe", h.get("sharpe"));
                 r.put("sortino", h.get("sortino"));
                 r.put("avgReturn", h.get("avgReturn"));
