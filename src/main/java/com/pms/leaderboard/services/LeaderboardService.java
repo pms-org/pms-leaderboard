@@ -51,8 +51,6 @@ public class LeaderboardService {
 
     private static final Logger log = LoggerFactory.getLogger(LeaderboardService.class);
 
-    // private static final String ZKEY_DAILY_GLOBAL = "leaderboard:global:daily";
-
     public void processBatch(List<MessageDTO> batchList) {
 
         if (batchList == null || batchList.isEmpty())
@@ -79,7 +77,7 @@ public class LeaderboardService {
             long rank;
 
             // writing in redis
-            if (rebuildService.isRedisHealthy()) {
+            if (!rebuildService.isRedisHealthy()) {
                 try {
                     zset.add(zkey, pid.toString(), rScore);
                     Long r = zset.reverseRank(zkey, pid.toString());
