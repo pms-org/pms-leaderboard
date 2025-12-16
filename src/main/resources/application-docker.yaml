@@ -18,8 +18,15 @@ spring:
 
   data:
     redis:
-      host: redis
-      port: 6379
+      sentinel:
+        master: lbmaster
+        nodes:
+          - redis-sentinel-1:26379
+          - redis-sentinel-2:26379
+          - redis-sentinel-3:26379
+      lettuce:
+        read-from: REPLICA_PREFERRED
+      timeout: 10s
 
   kafka:
     bootstrap-servers: kafka:9092

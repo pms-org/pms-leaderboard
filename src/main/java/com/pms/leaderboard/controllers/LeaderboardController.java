@@ -1,6 +1,5 @@
 package com.pms.leaderboard.controllers;
 
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,16 +17,24 @@ public class LeaderboardController {
     @Autowired
     private LeaderboardService leaderboardService;
 
-    // GET /api/leaderboard/top?board=leaderboard:global:daily&top=100
+    /**
+     * GET /api/leaderboard/top?top=100
+     */
     @GetMapping("/top")
-    public List<Map<String,Object>> top(@RequestParam String board, @RequestParam(defaultValue = "100") int top) {
-        return leaderboardService.getTop(board, top);
+    public Map<String, Object> getTop(
+            @RequestParam(defaultValue = "50") int top) {
+
+        return leaderboardService.getTop(top);
     }
 
-    // GET /api/leaderboard/around?board=leaderboard:global:daily&portfolioId=<id>&range=10
+    /**
+     * GET /api/leaderboard/around?portfolioId=<uuid>&range=10
+     */
     @GetMapping("/around")
-    public List<Map<String,Object>> around(@RequestParam String board, @RequestParam String portfolioId,
-                                           @RequestParam(defaultValue = "10") int range) {
-        return leaderboardService.getAround(board, portfolioId, range);
+    public Map<String, Object> getAround(
+            @RequestParam String portfolioId,
+            @RequestParam(defaultValue = "5") int range) {
+
+        return leaderboardService.getAround(portfolioId, range);
     }
 }

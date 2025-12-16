@@ -28,11 +28,16 @@ public class AnalyticsConsumer {
             return;
         }
 
-        List<MessageDTO> dtoList = events.stream()
-                .map(this::toDto)
-                .toList();
+        try {
+            List<MessageDTO> dtos = events.stream()
+                    .map(this::toDto)
+                    .toList();
 
-        leaderboardService.processBatch(dtoList);
+            leaderboardService.processBatch(dtos);
+
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     private MessageDTO toDto(RiskEvent e) {
@@ -43,8 +48,7 @@ public class AnalyticsConsumer {
                 BigDecimal.valueOf(e.getSharpeRatio()),
                 BigDecimal.valueOf(e.getSortinoRatio()),
                 BigDecimal.valueOf(e.getAvgRateOfReturn()),
-                LocalDateTime.now() 
-        );
+                LocalDateTime.now());
     }
 
 }

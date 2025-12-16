@@ -35,7 +35,7 @@ public class Leaderboard_Snapshot {
     @Column(name = "avg_rate_of_return")
     private  BigDecimal avgRateOfReturn;
 
-    @Column(name = "share_ratio")
+    @Column(name = "sharpe_ratio")
     private BigDecimal sharpeRatio;
 
     @Column(name = "sortino_ratio")

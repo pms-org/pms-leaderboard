@@ -1,5 +1,9 @@
+version: "3.9"
 
 services:
+  # ======================
+  # ZOOKEEPER + KAFKA
+  # ======================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.1
     container_name: pms-leaderboard-zookeeper
@@ -24,7 +28,6 @@ services:
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.6.0
-    hostname: schema-registry
     container_name: schema-registry
     depends_on:
       - kafka
@@ -32,21 +35,66 @@ services:
       - "8082:8081"
     environment:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
-      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081  
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/subjects >/dev/null 2>&1 || exit 1"]  
-      interval: 10s
-      timeout: 5s
-      retries: 12
 
-  redis:
+  # ======================
+  # REDIS MASTER + REPLICA
+  # ======================
+  redis-master:
     image: redis:7
-    container_name: pms-leaderboard-redis
+    container_name: redis-master
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    volumes:
+      - ./redis/master/redis.conf:/etc/redis/redis.conf
+      - redis-master-data:/data
     ports:
       - "6379:6379"
-    restart: unless-stopped
 
+  redis-replica:
+    image: redis:7
+    container_name: redis-replica
+    depends_on:
+      - redis-master
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    volumes:
+      - ./redis/replica/redis.conf:/etc/redis/redis.conf
+
+  # ======================
+  # REDIS SENTINELS
+  # ======================
+  redis-sentinel-1:
+    image: redis:7
+    container_name: redis-sentinel-1
+    depends_on:
+      - redis-master
+    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
+    volumes:
+      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+    ports:
+      - "26379:26379"
+
+  redis-sentinel-2:
+    image: redis:7
+    container_name: redis-sentinel-2
+    depends_on:
+      - redis-master
+    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
+    volumes:
+      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+
+  redis-sentinel-3:
+    image: redis:7
+    container_name: redis-sentinel-3
+    depends_on:
+      - redis-master
+    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
+    volumes:
+      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+
+  # ======================
+  # POSTGRES
+  # ======================
   postgres:
     image: postgres:15
     container_name: pms-leaderboard-postgres
@@ -54,20 +102,22 @@ services:
       POSTGRES_USER: leaderboard
       POSTGRES_PASSWORD: leaderboard_password
       POSTGRES_DB: leaderboard_db
-      TZ: Asia/Kolkata
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # ======================
+  # BACKEND
+  # ======================
   backend:
     image: ${BACKEND_IMAGE}:${IMAGE_TAG}
     container_name: pms-leaderboard-backend
     depends_on:
-      - postgres
-      - redis
       - kafka
-      - schema-registry
+      - redis-master
+      - redis-sentinel-1
+      - postgres
     ports:
       - "8000:8000"
     environment:
@@ -75,3 +125,4 @@ services:
 
 volumes:
   pgdata:
+  redis-master-data:
