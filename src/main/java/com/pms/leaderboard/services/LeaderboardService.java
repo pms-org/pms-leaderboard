@@ -153,9 +153,10 @@ public class LeaderboardService {
     // }
     // }
     // }
+    
     private void broadcastLeaderboard(String key) {
         try {
-            if (!rebuildService.isRedisHealthy()) {
+            if (rebuildService.isRedisHealthy()) {
                 wsHandler.broadcast(buildEnvelope(fetchTopFromRedis(key)));
             } else {
                 wsHandler.broadcast(buildEnvelope(fetchTopFromDB()));
