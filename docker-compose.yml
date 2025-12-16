@@ -47,7 +47,7 @@ services:
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
       - ./redis/master/redis.conf:/etc/redis/redis.conf
-      - ./redis/logs/master:/var/log/redis
+      - redis-logs:/var/log/redis
 
   redis-replica:
     image: redis:7
