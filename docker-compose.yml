@@ -47,6 +47,7 @@ services:
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
       - ./redis/master/redis.conf:/etc/redis/redis.conf
+      - redis-logs:/var/log/redis
 
   redis-replica:
     image: redis:7
@@ -56,6 +57,7 @@ services:
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
       - ./redis/replica/redis.conf:/etc/redis/redis.conf
+      - ./redis/logs/replica:/var/log/redis
 
   # ======================
   # REDIS SENTINELS
@@ -68,6 +70,7 @@ services:
     command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
       - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+      - ./redis/logs/sentinel:/var/log/redis
     ports:
       - "26379:26379"
 
@@ -79,6 +82,7 @@ services:
     command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
       - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+      - ./redis/logs/sentinel:/var/log/redis
 
   redis-sentinel-3:
     image: redis:7
@@ -88,6 +92,7 @@ services:
     command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
       - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+      - ./redis/logs/sentinel:/var/log/redis
 
   # ======================
   # POSTGRES
@@ -123,3 +128,4 @@ services:
 volumes:
   pgdata:
   redis-master-data:
+  redis-logs:
