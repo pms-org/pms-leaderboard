@@ -24,7 +24,6 @@ import com.pms.leaderboard.entities.Leaderboard;
 import com.pms.leaderboard.entities.Leaderboard_Snapshot;
 import com.pms.leaderboard.exceptions.DataAccessException;
 import com.pms.leaderboard.exceptions.DatabaseWriteException;
-import com.pms.leaderboard.exceptions.WebSocketBroadcastException;
 import com.pms.leaderboard.repositories.LeaderboardRepository;
 import com.pms.leaderboard.repositories.LeaderboardSnapshotRepository;
 
@@ -77,7 +76,7 @@ public class LeaderboardService {
             long rank;
 
             // writing in redis
-            if (!rebuildService.isRedisHealthy()) {
+            if (rebuildService.isRedisHealthy()) {
                 try {
                     zset.add(zkey, pid.toString(), rScore);
                     Long r = zset.reverseRank(zkey, pid.toString());
@@ -134,24 +133,36 @@ public class LeaderboardService {
         }
     }
 
+    // private void broadcastLeaderboard(String key) {
+    // List<Map<String, Object>> response;
+
+    // if (!rebuildService.isRedisHealthy()) {
+    // try {
+    // response = fetchTopFromRedis(key);
+    // wsHandler.broadcast(buildEnvelope(response));
+    // return;
+    // } catch (Exception e) {
+    // rebuildService.markRedisDown();
+    // log.error("Redis fetch failed → falling back to DB");
+    // }
+
+    // try {
+    // wsHandler.broadcast(buildEnvelope(fetchTopFromDB()));
+    // } catch (Exception ex) {
+    // throw new WebSocketBroadcastException("Leaderboard broadcast failed", ex);
+    // }
+    // }
+    // }
     private void broadcastLeaderboard(String key) {
-        List<Map<String, Object>> response;
-
-        if (!rebuildService.isRedisHealthy()) {
-            try {
-                response = fetchTopFromRedis(key);
-                wsHandler.broadcast(buildEnvelope(response));
-                return;
-            } catch (Exception e) {
-                rebuildService.markRedisDown();
-                log.error("Redis fetch failed → falling back to DB");
-            }
-
-            try {
+        try {
+            if (!rebuildService.isRedisHealthy()) {
+                wsHandler.broadcast(buildEnvelope(fetchTopFromRedis(key)));
+            } else {
                 wsHandler.broadcast(buildEnvelope(fetchTopFromDB()));
-            } catch (Exception ex) {
-                throw new WebSocketBroadcastException("Leaderboard broadcast failed", ex);
             }
+        } catch (Exception e) {
+            rebuildService.markRedisDown();
+            wsHandler.broadcast(buildEnvelope(fetchTopFromDB()));
         }
     }
 
@@ -162,21 +173,6 @@ public class LeaderboardService {
         envelope.put("top", response);
         return envelope;
     }
-
-    // private Map<String, Object> toRow(long rank, UUID pid, Double compositeScore, Leaderboard lb) {
-    //     Map<String, Object> r = new HashMap<>();
-    //     r.put("rank", rank);
-    //     r.put("portfolioId", pid.toString());
-    //     r.put("compositeScore", compositeScore);
-
-    //     if (lb != null) {
-    //         r.put("avgReturn", lb.getAvgRateOfReturn());
-    //         r.put("sharpe", lb.getSharpeRatio());
-    //         r.put("sortino", lb.getSortinoRatio());
-    //         r.put("updatedAt", lb.getUpdatedAt());
-    //     }
-    //     return r;
-    // }
 
     private List<Map<String, Object>> fetchTopFromRedis(String key) {
         ZSetOperations<String, String> zset = redis.opsForZSet();
