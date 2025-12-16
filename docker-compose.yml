@@ -47,9 +47,6 @@ services:
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
       - ./redis/master/redis.conf:/etc/redis/redis.conf
-      - redis-master-data:/data
-    ports:
-      - "6379:6379"
 
   redis-replica:
     image: redis:7
