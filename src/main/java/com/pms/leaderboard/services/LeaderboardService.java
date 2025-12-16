@@ -71,7 +71,7 @@ public class LeaderboardService {
                 Long rank = redis.execute(
                         rscript.upsertAndRank(),
                         List.of(ZKEY),
-                        redisScore,
+                        String.valueOf(redisScore),
                         pid.toString()
                 );
 
