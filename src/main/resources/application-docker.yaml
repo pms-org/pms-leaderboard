@@ -16,23 +16,23 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
 
-  # data:
-  #   redis:
-  #     sentinel:
-  #       master: lbmaster
-  #       nodes:
-  #         - redis-sentinel-1:26379
-  #         - redis-sentinel-2:26379
-  #         - redis-sentinel-3:26379
-  #     lettuce:
-  #       read-from: REPLICA_PREFERRED
-  #     timeout: 10s
+  data:
+    redis:
+      sentinel:
+        master: lbmaster
+        nodes:
+          - redis-sentinel-1:26379
+          - redis-sentinel-2:26379
+          - redis-sentinel-3:26379
+      lettuce:
+        read-from: REPLICA_PREFERRED
+      timeout: 10s
 
-  redis:
-    image: redis:7
-    container_name: pms-leaderboard-redis
-    ports:
-      - "6379:6379"
+  # redis:
+  #   image: redis:7
+  #   container_name: pms-leaderboard-redis
+  #   ports:
+  #     - "6379:6379"
 
   kafka:
     bootstrap-servers: kafka:9092

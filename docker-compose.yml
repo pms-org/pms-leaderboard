@@ -95,7 +95,7 @@ services:
       - redis-master
     command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
-      # - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
       - ./redis/sentinel/data:/data
       - ./redis/logs/sentinel:/var/log/redis
 
@@ -128,9 +128,9 @@ services:
     container_name: pms-leaderboard-backend
     depends_on: 
       - kafka
-      - redis
-      # - redis-master
-      # - redis-sentinel-1
+      # - redis
+      - redis-master
+      - redis-sentinel-1
       - postgres
     ports:
       - "8000:8000"
