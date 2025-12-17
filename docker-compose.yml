@@ -73,35 +73,35 @@ services:
   # REDIS SENTINELS
   # ======================
   redis-sentinel-1:
-    build: ./redis/sentinel
+    image: redis:7
     container_name: redis-sentinel-1
     depends_on:
       - redis-master
-    command: redis-server /etc/redis/sentinel.conf --sentinel
+    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
-      - ./sentinel-1.conf:/etc/redis/sentinel.conf
+      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
       - sentinel-1-data:/data
     ports:
       - "26379:26379"
 
   redis-sentinel-2:
-    build: ./redis/sentinel
+    image: redis:7
     container_name: redis-sentinel-2
     depends_on:
       - redis-master
-    command: redis-server /etc/redis/sentinel.conf --sentinel
+    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
-      - ./sentinel-2.conf:/etc/redis/sentinel.conf
+      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
       - sentinel-2-data:/data
 
   redis-sentinel-3:
-    build: ./redis/sentinel
+    image: redis:7
     container_name: redis-sentinel-3
     depends_on:
       - redis-master
-    command: redis-server /etc/redis/sentinel.conf --sentinel
+    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
-      - ./sentinel-3.conf:/etc/redis/sentinel.conf
+      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
       - sentinel-3-data:/data
 
   # redis:
