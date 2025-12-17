@@ -47,8 +47,7 @@ services:
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
       - ./redis/master/redis.conf:/etc/redis/redis.conf
-      - ./redis/master/data:/data
-      - ./redis/logs/master:/var/log/redis
+      - redis-master-data:/data
 
   redis-replica:
     image: redis:7
@@ -58,8 +57,7 @@ services:
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
       - ./redis/replica/redis.conf:/etc/redis/redis.conf
-      - ./redis/replica/data:/data
-      - ./redis/logs/replica:/var/log/redis
+      - redis-replica-data:/data
 
   # ======================
   # REDIS SENTINELS
@@ -72,32 +70,32 @@ services:
     command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
       - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
-      - ./redis/sentinel/data:/data
-      - ./redis/logs/sentinel:/var/log/redis
+      - redis-sentinal_1-data:/data
+      - redis-sentinal_1-logs:/var/log/redis
     ports:
       - "26379:26379"
 
-  redis-sentinel-2:
-    image: redis:7
-    container_name: redis-sentinel-2
-    depends_on:
-      - redis-master
-    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
-    volumes:
-      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
-      - ./redis/sentinel/data:/data
-      - ./redis/logs/sentinel:/var/log/redis
+  # redis-sentinel-2:
+  #   image: redis:7
+  #   container_name: redis-sentinel-2
+  #   depends_on:
+  #     - redis-master
+  #   command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
+  #   volumes:
+  #     - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+  #     - redis-sentinal_2-data:/data
+  #     - redis-sentinal_2-logs:/var/log/redis
 
-  redis-sentinel-3:
-    image: redis:7
-    container_name: redis-sentinel-3
-    depends_on:
-      - redis-master
-    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
-    volumes:
-      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
-      - ./redis/sentinel/data:/data
-      - ./redis/logs/sentinel:/var/log/redis
+  # redis-sentinel-3:
+  #   image: redis:7
+  #   container_name: redis-sentinel-3
+  #   depends_on:
+  #     - redis-master
+  #   command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
+  #   volumes:
+  #     - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+  #     - redis-sentinal_3-data:/data
+  #     - redis-sentinal_3-logs:/var/log/redis
 
 
   # redis:
@@ -140,4 +138,12 @@ services:
 volumes:
   pgdata:
   redis-master-data:
-  redis-logs:
+  redis-master-logs:
+  redis-replica-data:
+  redis-replica-logs:
+  redis-sentinal_1-data: 
+  redis-sentinal_1-logs:
+  redis-sentinal_2-data:
+  redis-sentinal_2-logs:
+  redis-sentinal_3-data:
+  redis-sentinal_3-logs:
