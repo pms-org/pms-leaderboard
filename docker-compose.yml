@@ -153,4 +153,6 @@ services:
 volumes:
   pgdata:
   redis-master-data:
+  redis-replica-data-1:
+  redis-replica-data-2:
   
