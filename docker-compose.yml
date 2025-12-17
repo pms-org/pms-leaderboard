@@ -47,6 +47,7 @@ services:
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
       - ./redis/master/redis.conf:/etc/redis/redis.conf
+      - ./redis/master/data:/data
       - ./redis/logs/master:/var/log/redis
 
   redis-replica:
@@ -57,6 +58,7 @@ services:
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
       - ./redis/replica/redis.conf:/etc/redis/redis.conf
+      - ./redis/replica/data:/data
       - ./redis/logs/replica:/var/log/redis
 
   # ======================
