@@ -1,7 +1,5 @@
 FROM redis:7
-
-RUN mkdir -p /data && chown redis:redis /data
-COPY sentinel.conf /data/sentinel.conf
-
+COPY sentinel.conf /etc/redis/sentinel.conf
+RUN chown redis:redis /etc/redis/sentinel.conf
 USER redis
-CMD ["redis-sentinel", "/data/sentinel.conf"]
+CMD ["redis-sentinel", "/etc/redis/sentinel.conf"]
