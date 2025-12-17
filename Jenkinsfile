@@ -13,22 +13,23 @@ pipeline {
         stage('Clean Workspace') {
             steps {
                 echo 'Cleaning Jenkins workspace...'
-                deleteDir()
+                cleanWs()
             }
         }
 
-        stage('Checkout') {
+        stage('Git Checkout') {
             steps {
                 echo 'Checking out code from GitHub...'
-                checkout scm
+                git branch: 'main', 
+                    url: 'https://github.com/pms-org/pms-leaderboard.git'
             }
         }
 
-        stage('Maven Build') {
-            steps {
-                sh 'mvn clean package -DskipTests'
-            }
-        }
+        // stage('Maven Build') {
+        //     steps {
+        //         sh 'mvn clean package -DskipTests'
+        //     }
+        // }
 
 
         stage('Build Docker Image') {
@@ -49,7 +50,7 @@ pipeline {
                 sh """
                   echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin
                   docker push ${BACKEND_IMAGE}:${VERSION}
-                  docker push ${BACKEND_IMAGE}:latest
+                  # docker push ${BACKEND_IMAGE}:latest
                 """
             }
         }
