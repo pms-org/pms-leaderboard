@@ -63,15 +63,15 @@ services:
   # REDIS SENTINELS
   # ======================
   redis-sentinel-1:
-    image: redis:7
+    build: ./redis/sentinel
     container_name: redis-sentinel-1
     depends_on:
       - redis-master
-    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
-    volumes:
-      - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
-      - redis-sentinal_1-data:/data
-      - redis-sentinal_1-logs:/var/log/redis
+    # command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
+    # volumes:
+    #   - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
+    #   - redis-sentinal_1-data:/data
+    #   - redis-sentinal_1-logs:/var/log/redis
     ports:
       - "26379:26379"
 
