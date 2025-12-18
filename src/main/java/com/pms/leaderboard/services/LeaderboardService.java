@@ -8,14 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
-
 import com.pms.leaderboard.Handler.WebSocketHandler;
 import com.pms.leaderboard.dto.BatchDTO;
 import com.pms.leaderboard.dto.MessageDTO;
@@ -43,14 +41,10 @@ public class LeaderboardService {
 
     private static final Logger log = LoggerFactory.getLogger(LeaderboardService.class);
 
-    // =========================
-    // KAFKA BATCH PROCESSING
-    // =========================
     public void processBatch(List<MessageDTO> batchList) {
 
         if (batchList == null || batchList.isEmpty()) return;
 
-        // Deduplicate by portfolio
         Map<UUID, MessageDTO> latest = new HashMap<>();
         for (MessageDTO m : batchList) {
             latest.put(m.getPortfolioId(), m);
@@ -94,7 +88,6 @@ public class LeaderboardService {
             }
         }
 
-        // DB snapshot should NEVER block Kafka
         if (!snapshotRows.isEmpty()) {
             try {
                 persistSnapshotService.persistSnapshot(snapshotRows);
@@ -103,7 +96,6 @@ public class LeaderboardService {
             }
         }
 
-        // WebSocket is best-effort
         try {
             wsHandler.broadcast(fetchTop(50));
         } catch (Exception e) {
@@ -115,9 +107,6 @@ public class LeaderboardService {
         }
     }
 
-    // =========================
-    // REDIS-ONLY READ APIs
-    // =========================
     public Map<String, Object> getTop(int n) {
         return fetchTop(n);
     }
@@ -155,7 +144,6 @@ public class LeaderboardService {
                 r.put("rank", rank++);
                 r.put("portfolioId", pid);
                 r.put("compositeScore", t.getScore());
-                // r.put("score", h.get("score"));
                 r.put("sharpe", h.get("sharpe"));
                 r.put("sortino", h.get("sortino"));
                 r.put("avgReturn", h.get("avgReturn"));
@@ -173,9 +161,7 @@ public class LeaderboardService {
         );
     }
 
-    // =========================
-    // INTERNAL HELPERS
-    // =========================
+
     private Map<String, Object> fetchTop(int n) {
 
         Set<ZSetOperations.TypedTuple<String>> top =
@@ -194,7 +180,6 @@ public class LeaderboardService {
                 r.put("rank", rank++);
                 r.put("portfolioId", pid);
                 r.put("compositeScore", t.getScore());
-                // r.put("score", h.get("score"));
                 r.put("sharpe", h.get("sharpe"));
                 r.put("sortino", h.get("sortino"));
                 r.put("avgReturn", h.get("avgReturn"));
@@ -212,8 +197,8 @@ public class LeaderboardService {
     }
 
     private BigDecimal computeScore(MessageDTO e) {
-        return e.getAvgRateOfReturn().multiply(BigDecimal.valueOf(100))
-                .add(e.getSharpeRatio().multiply(BigDecimal.valueOf(50)))
-                .add(e.getSortinoRatio().multiply(BigDecimal.valueOf(10)));
+        return e.getAvgRateOfReturn().multiply(BigDecimal.valueOf(50))
+                .add(e.getSharpeRatio().multiply(BigDecimal.valueOf(30)))
+                .add(e.getSortinoRatio().multiply(BigDecimal.valueOf(20)));
     }
 }

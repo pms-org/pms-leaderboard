@@ -55,15 +55,11 @@ pipeline {
             }
         }
 
-        stage('Deploy Locally with Docker Compose') {
+        stage('Deploy with Docker Compose') {
             steps {
                 echo 'Deploying locally using docker-compose.yml...'
                 sh """
-                  # Stop any existing stack (ignore errors on first run)
                   docker compose down || true
-
-                  # Pull the pushed backend image (backend refers to backend service in docker compose, hence that image is being pulled)
-                  # and recreate stack
                   docker compose pull backend
                   docker compose up -d
 

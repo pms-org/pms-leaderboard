@@ -1,21 +1,16 @@
 package com.pms.leaderboard.services;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import com.pms.leaderboard.dto.BatchDTO;
-import com.pms.leaderboard.dto.MessageDTO;
 import com.pms.leaderboard.entities.Leaderboard;
 import com.pms.leaderboard.entities.Leaderboard_Snapshot;
-import com.pms.leaderboard.exceptions.DatabaseWriteException;
 import com.pms.leaderboard.repositories.LeaderboardRepository;
 import com.pms.leaderboard.repositories.LeaderboardSnapshotRepository;
 
@@ -37,7 +32,7 @@ public class PersistSnapshot {
         List<Leaderboard> currents = new ArrayList<>();
         List<Leaderboard_Snapshot> snapshots = new ArrayList<>();
 
-        Instant now = Instant.now();
+        Instant stamp = Instant.now();
 
         for (BatchDTO r : rows) {
 
@@ -53,7 +48,7 @@ public class PersistSnapshot {
             cur.setAvgRateOfReturn(r.m.getAvgRateOfReturn());
             cur.setSharpeRatio(r.m.getSharpeRatio());
             cur.setSortinoRatio(r.m.getSortinoRatio());
-            cur.setUpdatedAt(now);
+            cur.setUpdatedAt(stamp);
 
             currents.add(cur);
 
@@ -65,7 +60,7 @@ public class PersistSnapshot {
             snap.setAvgRateOfReturn(r.m.getAvgRateOfReturn());
             snap.setSharpeRatio(r.m.getSharpeRatio());
             snap.setSortinoRatio(r.m.getSortinoRatio());
-            snap.setUpdatedAt(now);
+            snap.setUpdatedAt(stamp);
 
             snapshots.add(snap);
         }
