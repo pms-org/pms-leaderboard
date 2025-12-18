@@ -95,12 +95,6 @@ services:
       - ./redis/sentinel/sentinel.conf:/etc/redis/sentinel.conf
       - sentinel-3-data:/data
 
-  # redis:
-  #   image: redis:7
-  #   container_name: pms-leaderboard-redis
-  #   ports:
-  #     - "6379:6379"
-
   postgres:
     image: postgres:15
     container_name: pms-leaderboard-postgres
@@ -118,7 +112,6 @@ services:
     container_name: pms-leaderboard-backend
     depends_on: 
       - kafka
-      # - redis
       - redis-sentinel-1
       - redis-sentinel-2
       - redis-sentinel-3
