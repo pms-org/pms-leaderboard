@@ -8,12 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
+
 import com.pms.leaderboard.Handler.WebSocketHandler;
 import com.pms.leaderboard.dto.BatchDTO;
 import com.pms.leaderboard.dto.MessageDTO;
@@ -38,6 +40,7 @@ public class LeaderboardService {
 
     private static final String ZKEY = "leaderboard:global:daily";
     private static final String HKEY_PREFIX = "leaderboard:portfolio:";
+    private static final String STREAM_KEY = "leaderboard:stream";
 
     private static final Logger log = LoggerFactory.getLogger(LeaderboardService.class);
 
@@ -80,7 +83,19 @@ public class LeaderboardService {
                 redis.opsForHash().put(hkey, "avgReturn", m.getAvgRateOfReturn().toString());
                 redis.opsForHash().put(hkey, "updatedAt", Instant.now().toString());
 
-                snapshotRows.add(new BatchDTO(pid, score, rank + 1, m));
+                // 🔥 WRITE-THROUGH EVENT (Redis Stream)
+                redis.opsForStream().add(
+                    STREAM_KEY,
+                    Map.of(
+                        "portfolioId", pid.toString(),
+                        "score", score.toString(),
+                        "rank", String.valueOf(rank + 1),
+                        "sharpe", m.getSharpeRatio().toString(),
+                        "sortino", m.getSortinoRatio().toString(),
+                        "avgReturn", m.getAvgRateOfReturn().toString(),
+                        "updatedAt", Instant.now().toString()
+                    )
+                );
 
             } catch (Exception ex) {
                 log.error("Failed processing portfolio {}", m.getPortfolioId(), ex);
@@ -88,13 +103,13 @@ public class LeaderboardService {
             }
         }
 
-        if (!snapshotRows.isEmpty()) {
-            try {
-                persistSnapshotService.persistSnapshot(snapshotRows);
-            } catch (Exception e) {
-                log.error("DB snapshot failed — Redis remains source of truth", e);
-            }
-        }
+        // if (!snapshotRows.isEmpty()) {
+        //     try {
+        //         persistSnapshotService.persistSnapshot(snapshotRows);
+        //     } catch (Exception e) {
+        //         log.error("DB snapshot failed — Redis remains source of truth", e);
+        //     }
+        // }
 
         try {
             wsHandler.broadcast(fetchTop(50));
