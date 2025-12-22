@@ -4,8 +4,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.pms.leaderboard.dto.BatchDTO;
@@ -20,25 +22,25 @@ public class PersistSnapshot {
     @Autowired
     LeaderboardSnapshotRepository snapshotRepo;
 
+    @Async("dbExecutor")
     @Transactional
-    public void persistSnapshot(List<BatchDTO> rows) {
-
+    public CompletableFuture<Void> persistSnapshot(List<BatchDTO> rows) {
         Instant stamp = Instant.now();
         List<Leaderboard_Snapshot> snapshots = new ArrayList<>();
 
         for (BatchDTO r : rows) {
             Leaderboard_Snapshot snap = new Leaderboard_Snapshot();
-
             snap.setHistoryId(UUID.randomUUID());
             snap.setPortfolioId(r.pid);
             snap.setPortfolioScore(r.score);
             snap.setLeaderboardRanking(r.rank);
             snap.setUpdatedAt(stamp);
-
             snapshots.add(snap);
         }
 
         snapshotRepo.saveAll(snapshots);
+
+        return CompletableFuture.completedFuture(null);
     }
 
 }

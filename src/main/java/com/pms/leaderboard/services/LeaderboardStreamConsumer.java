@@ -56,6 +56,7 @@ public class LeaderboardStreamConsumer {
         // 2️⃣ Process new messages
         consumeInternal(read(ReadOffset.lastConsumed()));
     }
+
     // -----------------------------
     // Read from stream
     // -----------------------------
@@ -72,8 +73,8 @@ public class LeaderboardStreamConsumer {
         }
 
         @SuppressWarnings("unchecked")
-        List<MapRecord<String, Object, Object>> casted =
-                (List<MapRecord<String, Object, Object>>) (List<?>) records;
+        List<MapRecord<String, Object, Object>> casted
+                = (List<MapRecord<String, Object, Object>>) (List<?>) records;
 
         return casted;
     }
@@ -104,17 +105,20 @@ public class LeaderboardStreamConsumer {
         }
 
         try {
-            // 🔥 DB write
-            persistSnapshotService.persistSnapshot(batch);
+            persistSnapshotService.persistSnapshot(batch)
+                    .thenRun(() -> {
+                        String[] ids = records.stream()
+                                .map(r -> r.getId().getValue())
+                                .toArray(String[]::new);
 
-            // ✅ ACK only after DB success
-            String[] ids = records.stream()
-                    .map(r -> r.getId().getValue())
-                    .toArray(String[]::new);
+                        redis.opsForStream().acknowledge(STREAM_KEY, GROUP, ids);
 
-            redis.opsForStream().acknowledge(STREAM_KEY, GROUP, ids);
-
-            log.info("Persisted & ACKed leaderboard batch size={}", batch.size());
+                        log.info("Persisted & ACKed leaderboard batch size={}", batch.size());
+                    })
+                    .exceptionally(ex -> {
+                        log.error("DB failed — will retry via XPENDING", ex);
+                        return null;
+                    });
 
         } catch (Exception e) {
             log.error(
