@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.ReadOffset;
-import static org.springframework.data.redis.connection.stream.StreamOffset.create;
+import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,9 +25,8 @@ import jakarta.annotation.PostConstruct;
 @Service
 public class LeaderboardStreamConsumer {
 
-    private static final Logger log =
-        LoggerFactory.getLogger(LeaderboardStreamConsumer.class);
-
+    private static final Logger log
+            = LoggerFactory.getLogger(LeaderboardStreamConsumer.class);
 
     private static final String STREAM_KEY = "leaderboard:stream";
     private static final String GROUP = "leaderboard-db-group";
@@ -51,48 +50,78 @@ public class LeaderboardStreamConsumer {
     @Scheduled(fixedDelay = 1000)
     public void consume() {
 
-        List<MapRecord<String, Object, Object>> records
-                = redis.opsForStream().read(Consumer.from(GROUP, CONSUMER),
-                        StreamReadOptions.empty().count(100),
-                        create(STREAM_KEY, ReadOffset.lastConsumed())
-                );
+        // 1️⃣ Retry pending (un-ACKed) messages first
+        consumeInternal(read(ReadOffset.from("0")));
 
-        if (records == null || records.isEmpty()) {
+        // 2️⃣ Process new messages
+        consumeInternal(read(ReadOffset.lastConsumed()));
+    }
+    // -----------------------------
+    // Read from stream
+    // -----------------------------
+    private List<MapRecord<String, Object, Object>> read(ReadOffset offset) {
+
+        var records = redis.opsForStream().read(
+                Consumer.from(GROUP, CONSUMER),
+                StreamReadOptions.empty().count(100),
+                StreamOffset.create(STREAM_KEY, offset)
+        );
+
+        if (records == null) {
+            return List.of();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<MapRecord<String, Object, Object>> casted =
+                (List<MapRecord<String, Object, Object>>) (List<?>) records;
+
+        return casted;
+    }
+
+    // -----------------------------
+    // Persist + ACK
+    // -----------------------------
+    private void consumeInternal(List<MapRecord<String, Object, Object>> records) {
+
+        if (records.isEmpty()) {
             return;
         }
 
         List<BatchDTO> batch = new ArrayList<>();
 
         for (MapRecord<String, Object, Object> r : records) {
+
             Map<Object, Object> v = r.getValue();
 
             BatchDTO dto = new BatchDTO(
                     UUID.fromString(v.get("portfolioId").toString()),
                     new BigDecimal(v.get("score").toString()),
                     Long.parseLong(v.get("rank").toString()),
-                    null // metrics already included
+                    null
             );
 
             batch.add(dto);
         }
 
         try {
+            // 🔥 DB write
             persistSnapshotService.persistSnapshot(batch);
 
-            // ACK only after DB success
+            // ✅ ACK only after DB success
             String[] ids = records.stream()
                     .map(r -> r.getId().getValue())
                     .toArray(String[]::new);
 
             redis.opsForStream().acknowledge(STREAM_KEY, GROUP, ids);
 
+            log.info("Persisted & ACKed leaderboard batch size={}", batch.size());
+
         } catch (Exception e) {
             log.error(
-                    "Failed to persist leaderboard snapshot. Will retry via Redis Stream. batchSize={}",
+                    "Failed to persist leaderboard snapshot. Will retry. batchSize={}",
                     batch.size(),
                     e
             );
         }
     }
-
 }
