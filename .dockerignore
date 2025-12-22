@@ -1,0 +1,40 @@
+# Maven target directory
+target/
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# IDE specific files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+
+# OS junk files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Node modules (if using frontend inside same repo)
+node_modules/
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Docker files
+docker-compose*
+Dockerfile
+.env
+
+**/env.properties

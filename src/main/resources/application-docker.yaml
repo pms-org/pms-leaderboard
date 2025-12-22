@@ -1,12 +1,67 @@
+# spring:
+#   application:
+#     name: wsdemo
+    
+#   datasource:
+#     url: jdbc:postgresql://postgres:5432/leaderboard_db
+#     username: leaderboard
+#     password: leaderboard_password
+#     driver-class-name: org.postgresql.Driver
+
+#   jpa:
+#     hibernate:
+#       ddl-auto: update
+#     properties:
+#       hibernate:
+#         dialect: org.hibernate.dialect.PostgreSQLDialect
+#     show-sql: true
+
+#   data:
+#     redis:
+#       sentinel:
+#         master: lbmaster
+#         nodes:
+#           - redis-sentinel-1:26379
+#           - redis-sentinel-2:26379
+#           - redis-sentinel-3:26379
+#       lettuce:
+#         read-from: REPLICA_PREFERRED
+#       timeout: 10s
+
+#   # redis:
+#   #   image: redis:7
+#   #   container_name: pms-leaderboard-redis
+#   #   ports:
+#   #     - "6379:6379"
+
+#   kafka:
+#     bootstrap-servers: kafka:9092
+#     consumer:
+#       group-id: leaderboard-group
+#       max-poll-records: 500
+#       enable-auto-commit: false
+#       auto-offset-reset: earliest
+#     properties:
+#       schema.registry.url: http://schema-registry:8081
+
+# server:
+#   port: 8000
+
+# logging:
+#   level:
+#     com.pms.leaderboard: DEBUG
+#     com.pms.leaderboard.services: INFO
+
+
 spring:
   application:
     name: wsdemo
-    
+
   datasource:
-    url: jdbc:postgresql://postgres:5432/leaderboard_db
-    username: leaderboard
-    password: leaderboard_password
-    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: ${DB_DRIVER}
 
   jpa:
     hibernate:
@@ -19,35 +74,26 @@ spring:
   data:
     redis:
       sentinel:
-        master: lbmaster
-        nodes:
-          - redis-sentinel-1:26379
-          - redis-sentinel-2:26379
-          - redis-sentinel-3:26379
+        master: ${REDIS_MASTER}
+        nodes: ${REDIS_SENTINEL_NODES}
       lettuce:
-        read-from: REPLICA_PREFERRED
-      timeout: 10s
-
-  # redis:
-  #   image: redis:7
-  #   container_name: pms-leaderboard-redis
-  #   ports:
-  #     - "6379:6379"
+        read-from: ${REDIS_READ_FROM:REPLICA_PREFERRED}
+      timeout: ${REDIS_TIMEOUT:10s}
 
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
-      group-id: leaderboard-group
-      max-poll-records: 500
-      enable-auto-commit: false
-      auto-offset-reset: earliest
+      group-id: ${KAFKA_CONSUMER_GROUP_ID}
+      max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS}
+      enable-auto-commit: ${KAFKA_CONSUMER_ENABLE_AUTO_COMMIT}
+      auto-offset-reset: ${KAFKA_CONSUMER_AUTO_OFFSET_RESET}
     properties:
-      schema.registry.url: http://schema-registry:8081
+      schema.registry.url: ${KAFKA_SCHEMA_REGISTRY_URL}
 
 server:
-  port: 8000
+  port: ${SERVER_PORT:8000}
 
 logging:
   level:
-    com.pms.leaderboard: DEBUG
-    com.pms.leaderboard.services: INFO
+    com.pms.leaderboard: ${LOG_LEVEL_COM_PMS_LEADERBOARD:DEBUG}
+    com.pms.leaderboard.services: ${LOG_LEVEL_COM_PMS_LEADERBOARD_SERVICES:INFO}
