@@ -1,6 +1,9 @@
 pipeline {
     agent any
-
+    tools {
+        jdk 'java-21'
+        maven 'maven-3.9.12'
+    }
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('leaderboard-dockerhub-creds')
         BACKEND_IMAGE = "${DOCKER_HUB_CREDENTIALS_USR}/pms-leaderboard-backend"
