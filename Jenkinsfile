@@ -68,6 +68,38 @@ pipeline {
                 """
             }
         }
+
+
+        // stage('Deploy to EC2') {
+        //     steps {
+        //         sshagent(['ec2-ssh-key']) {
+        //             withCredentials([file(credentialsId: 'pms-env-file', variable: 'ENV_FILE')]) {
+
+        //                 // Copy compose file
+        //                 sh '''
+        //                 scp -o StrictHostKeyChecking=no \
+        //                     docker/prod-docker-compose.yml \
+        //                     $EC2_HOST:/home/ubuntu/docker-compose.yml
+        //                 '''
+
+        //                 // Copy .env inside EC2 from Jenkins secret file
+        //                 sh '''
+        //                 scp -o StrictHostKeyChecking=no "$ENV_FILE" "$EC2_HOST:/home/ubuntu/.env"
+        //                 '''
+
+        //                 // Deploy containers
+        //                 sh """
+        //                 ssh -o StrictHostKeyChecking=no $EC2_HOST "
+        //                     docker pull $DOCKERHUB_REPO:$IMAGE_TAG &&
+        //                     docker compose down &&
+        //                     docker compose up -d &&
+        //                     docker ps
+        //                 "
+        //                 """
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     post {
