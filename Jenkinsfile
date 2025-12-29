@@ -96,11 +96,11 @@ pipeline {
                         // Deploy containers
                         sh """
                         ssh -o StrictHostKeyChecking=no $EC2_HOST "
-                            docker compose down || true
-                            docker compose pull backend
-                            docker compose up -d
+                            docker compose --env-file /home/ubuntu/.env down || true
+                            docker compose --env-file /home/ubuntu/.env pull backend
+                            docker compose --env-file /home/ubuntu/.env up -d
 
-                            echo "Deployment complete. Running containers:"
+                            echo Deployment complete. Running containers:
                             docker ps
                         "
                         """
