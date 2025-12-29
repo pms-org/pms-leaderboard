@@ -9,6 +9,9 @@ pipeline {
         BACKEND_IMAGE = "${DOCKER_HUB_CREDENTIALS_USR}/pms-leaderboard-backend"
         VERSION = "${BUILD_NUMBER}"
         IMAGE_TAG = "${VERSION}"
+        EC2_IP="3.144.228.45"
+        EC2_HOST="ubuntu@${EC2_IP}"
+        SERVER_URL=
     }
 
     stages {
@@ -58,51 +61,53 @@ pipeline {
             }
         }
 
-        stage('Deploy with Docker Compose') {
-            steps {
-                echo 'Deploying locally using docker-compose.yml...'
-                sh """
-                  docker compose down || true
-                  docker compose pull backend
-                  docker compose up -d
-
-                  echo "Deployment complete. Running containers:"
-                  docker ps
-                """
-            }
-        }
-
-
-        // stage('Deploy to EC2') {
+        // stage('Deploy with Docker Compose') {
         //     steps {
-        //         sshagent(['ec2-ssh-key']) {
-        //             withCredentials([file(credentialsId: 'pms-env-file', variable: 'ENV_FILE')]) {
+        //         echo 'Deploying locally using docker-compose.yml...'
+        //         sh """
+        //           docker compose down || true
+        //           docker compose pull backend
+        //           docker compose up -d
 
-        //                 // Copy compose file
-        //                 sh '''
-        //                 scp -o StrictHostKeyChecking=no \
-        //                     docker/prod-docker-compose.yml \
-        //                     $EC2_HOST:/home/ubuntu/docker-compose.yml
-        //                 '''
-
-        //                 // Copy .env inside EC2 from Jenkins secret file
-        //                 sh '''
-        //                 scp -o StrictHostKeyChecking=no "$ENV_FILE" "$EC2_HOST:/home/ubuntu/.env"
-        //                 '''
-
-        //                 // Deploy containers
-        //                 sh """
-        //                 ssh -o StrictHostKeyChecking=no $EC2_HOST "
-        //                     docker pull $DOCKERHUB_REPO:$IMAGE_TAG &&
-        //                     docker compose down &&
-        //                     docker compose up -d &&
-        //                     docker ps
-        //                 "
-        //                 """
-        //             }
-        //         }
+        //           echo "Deployment complete. Running containers:"
+        //           docker ps
+        //         """
         //     }
         // }
+
+
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['ec2-ssh-key']) {
+                    withCredentials([file(credentialsId: 'leaderboard-env', variable: 'ENV_FILE')]) {
+
+                        // Copy compose file
+                        sh '''
+                        scp -o StrictHostKeyChecking=no \
+                            docker/prod-docker-compose.yml \
+                            $EC2_HOST:/home/ubuntu/docker-compose.yml
+                        '''
+
+                        // Copy .env inside EC2 from Jenkins secret file
+                        sh '''
+                        scp -o StrictHostKeyChecking=no "$ENV_FILE" "$EC2_HOST:/home/ubuntu/.env"
+                        '''
+
+                        // Deploy containers
+                        sh """
+                        ssh -o StrictHostKeyChecking=no $EC2_HOST "
+                            docker compose down || true
+                            docker compose pull backend
+                            docker compose up -d
+
+                            echo "Deployment complete. Running containers:"
+                            docker ps
+                        "
+                        """
+                    }
+                }
+            }
+        }
     }
 
     post {
