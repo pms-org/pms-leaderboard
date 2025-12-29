@@ -119,8 +119,6 @@ services:
       - redis-replica-1
       - redis-replica-2
       - postgres
-    env_file:
-      - .env
     ports:
       - "8000:8000"
     environment:
