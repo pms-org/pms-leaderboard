@@ -9,7 +9,7 @@ pipeline {
         BACKEND_IMAGE = "${DOCKER_HUB_CREDENTIALS_USR}/pms-leaderboard-backend"
         VERSION = "${BUILD_NUMBER}"
         IMAGE_TAG = "${VERSION}"
-        EC2_IP="3.144.228.45"
+        EC2_IP="3.149.5.40"
         EC2_HOST="ubuntu@${EC2_IP}"
         SERVER_URL="http://${EC2_IP}:8000"
     }
