@@ -11,7 +11,7 @@ pipeline {
         IMAGE_TAG = "${VERSION}"
         EC2_IP="3.144.228.45"
         EC2_HOST="ubuntu@${EC2_IP}"
-        SERVER_URL=
+        SERVER_URL="http://${EC2_IP}:8000"
     }
 
     stages {
