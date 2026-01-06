@@ -28,6 +28,9 @@ public class LeaderboardStreamConsumer {
     private static final Logger log
             = LoggerFactory.getLogger(LeaderboardStreamConsumer.class);
 
+    // @Value("${spring.application.name}")
+    // private String appName;
+    // private String consumerName = appName + "-" + UUID.randomUUID();
     private static final String STREAM_KEY = "leaderboard:stream";
     private static final String GROUP = "leaderboard-db-group";
     private static final String CONSUMER = "db-writer-1";
@@ -42,13 +45,16 @@ public class LeaderboardStreamConsumer {
     public void initGroup() {
         try {
             redis.opsForStream().createGroup(STREAM_KEY, GROUP);
+            log.info("Redis stream group created");
         } catch (Exception e) {
-            // group already exists → ignore
+            log.info("Redis stream group already exists");
         }
     }
 
     @Scheduled(fixedDelay = 1000)
     public void consume() {
+
+        log.debug("Polling Redis stream");
 
         // 1️⃣ Retry pending (un-ACKed) messages first
         consumeInternal(read(ReadOffset.from("0")));
@@ -82,15 +88,46 @@ public class LeaderboardStreamConsumer {
     // -----------------------------
     // Persist + ACK
     // -----------------------------
+//     private void consumeInternal(List<MapRecord<String, Object, Object>> records) {
+//         if (records.isEmpty()) {
+//             return;
+//         }
+//         List<BatchDTO> batch = new ArrayList<>();
+//         for (MapRecord<String, Object, Object> r : records) {
+//             Map<Object, Object> v = r.getValue();
+//             BatchDTO dto = new BatchDTO(
+//                     UUID.fromString(v.get("portfolioId").toString()),
+//                     new BigDecimal(v.get("score").toString()),
+//                     Long.parseLong(v.get("rank").toString()),
+//                     new BigDecimal(v.get("avgRateOfReturn").toString()),
+//                     new BigDecimal(v.get("sharpeRatio").toString()),
+//                     new BigDecimal(v.get("sortinoRatio").toString())
+//             );
+//             batch.add(dto);
+//         }
+//         try {
+//             persistSnapshotService.persistSnapshot(batch);
+//             redis.opsForStream().acknowledge(STREAM_KEY, GROUP, ids);
+//             log.info("Persisted & ACKed batch size={}", batch.size());
+//         } catch (Exception e) {
+//             log.error("DB failed — NOT ACKING, will retry", e);
+//         }
+//     }
     private void consumeInternal(List<MapRecord<String, Object, Object>> records) {
-
         if (records.isEmpty()) {
             return;
         }
 
+        log.info("Stream records received count={}", records.size());
+
         List<BatchDTO> batch = new ArrayList<>();
+        List<String> ids = new ArrayList<>(); // ✅ Collect record IDs
 
         for (MapRecord<String, Object, Object> r : records) {
+
+            log.debug("Stream record id={} value={}", r.getId(), r.getValue());
+
+            ids.add(r.getId().getValue()); // ✅ Save ID for ACK
 
             Map<Object, Object> v = r.getValue();
 
@@ -98,34 +135,32 @@ public class LeaderboardStreamConsumer {
                     UUID.fromString(v.get("portfolioId").toString()),
                     new BigDecimal(v.get("score").toString()),
                     Long.parseLong(v.get("rank").toString()),
-                    null
+                    new BigDecimal(v.get("avgRateOfReturn").toString()),
+                    new BigDecimal(v.get("sharpeRatio").toString()),
+                    new BigDecimal(v.get("sortinoRatio").toString())
             );
 
+            log.debug("BatchDTO mapped {}", dto);
             batch.add(dto);
         }
 
         try {
-            persistSnapshotService.persistSnapshot(batch)
-                    .thenRun(() -> {
-                        String[] ids = records.stream()
-                                .map(r -> r.getId().getValue())
-                                .toArray(String[]::new);
+            // ✅ Persist to DB in a single transaction
+            persistSnapshotService.persistSnapshot(batch);
 
-                        redis.opsForStream().acknowledge(STREAM_KEY, GROUP, ids);
+            // ✅ Only ACK after DB commit
+            redis.opsForStream().acknowledge(
+                    STREAM_KEY,
+                    GROUP,
+                    ids.toArray(String[]::new)
+            );
 
-                        log.info("Persisted & ACKed leaderboard batch size={}", batch.size());
-                    })
-                    .exceptionally(ex -> {
-                        log.error("DB failed — will retry via XPENDING", ex);
-                        return null;
-                    });
+            log.info("Persisted & ACKed batch size={}", batch.size());
 
         } catch (Exception e) {
-            log.error(
-                    "Failed to persist leaderboard snapshot. Will retry. batchSize={}",
-                    batch.size(),
-                    e
-            );
+            log.error("DB failed — NOT ACKING, will retry", e);
+            // no ACK → message stays in stream for retry
         }
     }
+
 }
