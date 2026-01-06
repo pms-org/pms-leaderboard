@@ -17,8 +17,10 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.util.backoff.FixedBackOff;
 
-import com.pms.leaderboard.proto.RiskEvent;
+import com.pms.proto.analytics.RiskEvent;
 
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
@@ -35,6 +37,8 @@ public class KafkaConfig {
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaProtobufSerializer.class);
 
         config.put("schema.registry.url", "http://schema-registry:8081");
+        config.put("auto.register.schemas", false);
+
 
         return new DefaultKafkaProducerFactory<>(config);
     }
@@ -68,7 +72,13 @@ public class KafkaConfig {
         factory.setConsumerFactory(consumerFactory());
 
         factory.setBatchListener(true);
-        factory.setConcurrency(4);
+         // 🔴 THIS IS WHERE IT GOES
+        factory.setCommonErrorHandler(
+            new DefaultErrorHandler(
+                new FixedBackOff(1000L, 3)
+            )
+        );
+        factory.setConcurrency(8);
         factory.getContainerProperties().setPollTimeout(3000);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.BATCH);
         return factory;
