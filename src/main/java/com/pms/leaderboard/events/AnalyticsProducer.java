@@ -8,9 +8,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.pms.proto.analytics.RiskEvent;
-
-// import com.pms.leaderboard.proto.RiskEvent;
+import com.pms.leaderboard.proto.RiskEvent;
 
 @Service
 public class AnalyticsProducer {
@@ -75,7 +73,7 @@ public class AnalyticsProducer {
                 .setAvgRateOfReturn(avgRor.doubleValue())
                 .build();
 
-        riskEventKafkaTemplate.send("portfolio-risk-metrics", pid.toString(), event);
+        riskEventKafkaTemplate.send("portfolio-metrics", pid.toString(), event);
         System.out.println("Sent Protobuf RiskEvent: " + event);
     }
 

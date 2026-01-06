@@ -33,6 +33,9 @@ public class LeaderboardService {
     private RedisScoreService redisScoreService;
 
     @Autowired
+    private PersistSnapshot persistSnapshotService;
+
+    @Autowired
     private RedisLeaderboardScript rscript;
 
     private static final String ZKEY = "leaderboard:global:daily";
@@ -43,12 +46,7 @@ public class LeaderboardService {
 
     public void processBatch(List<MessageDTO> batchList) {
 
-        if (batchList == null || batchList.isEmpty()) {
-            log.warn("processBatch called with EMPTY list");
-            return;
-        }
-
-        log.info("Processing batch size={}", batchList.size());
+        if (batchList == null || batchList.isEmpty()) return;
 
         Map<UUID, MessageDTO> latest = new HashMap<>();
         for (MessageDTO m : batchList) {
@@ -57,23 +55,9 @@ public class LeaderboardService {
 
         List<BatchDTO> snapshotRows = new ArrayList<>();
         List<MessageDTO> failed = new ArrayList<>();
-        Instant now = Instant.now();
 
         for (MessageDTO m : latest.values()) {
-
-            log.debug(
-                    "Processing pid={} sharpe={} sortino={} avgReturn={}",
-                    m.getPortfolioId(),
-                    m.getSharpeRatio(),
-                    m.getSortinoRatio(),
-                    m.getAvgRateOfReturn()
-            );
-
             try {
-
-                if (m.getAvgRateOfReturn() == null || m.getSharpeRatio() == null || m.getSortinoRatio() == null) {
-                    throw new IllegalStateException("NULL metrics for portfolio " + m.getPortfolioId());
-                }
                 UUID pid = m.getPortfolioId();
                 BigDecimal score = computeScore(m);
 
@@ -94,37 +78,38 @@ public class LeaderboardService {
 
                 String hkey = HKEY_PREFIX + pid;
                 redis.opsForHash().put(hkey, "score", score.toString());
-                redis.opsForHash().put(hkey, "sharpeRatio", m.getSharpeRatio().toString());
-                redis.opsForHash().put(hkey, "sortinoRatio", m.getSortinoRatio().toString());
-                redis.opsForHash().put(hkey, "avgRateOfReturn", m.getAvgRateOfReturn().toString());
+                redis.opsForHash().put(hkey, "sharpe", m.getSharpeRatio().toString());
+                redis.opsForHash().put(hkey, "sortino", m.getSortinoRatio().toString());
+                redis.opsForHash().put(hkey, "avgReturn", m.getAvgRateOfReturn().toString());
                 redis.opsForHash().put(hkey, "updatedAt", Instant.now().toString());
-
-                snapshotRows.add(new BatchDTO(pid, score, rank + 1, m.getAvgRateOfReturn(), m.getSharpeRatio(), m.getSortinoRatio()));
-
-                log.debug("HASH written {}", hkey);
-
 
                 // 🔥 WRITE-THROUGH EVENT (Redis Stream)
                 redis.opsForStream().add(
-                        STREAM_KEY,
-                        Map.of(
-                                "portfolioId", pid.toString(),
-                                "score", score.toString(),
-                                "rank", String.valueOf(rank + 1),
-                                "sharpeRatio", m.getSharpeRatio().toString(),
-                                "sortinoRatio", m.getSortinoRatio().toString(),
-                                "avgRateOfReturn", m.getAvgRateOfReturn().toString(),
-                                "updatedAt", Instant.now().toString()
-                        )
+                    STREAM_KEY,
+                    Map.of(
+                        "portfolioId", pid.toString(),
+                        "score", score.toString(),
+                        "rank", String.valueOf(rank + 1),
+                        "sharpe", m.getSharpeRatio().toString(),
+                        "sortino", m.getSortinoRatio().toString(),
+                        "avgReturn", m.getAvgRateOfReturn().toString(),
+                        "updatedAt", Instant.now().toString()
+                    )
                 );
-
-                log.info("STREAM write OK pid={} rank={}", pid, rank + 1);
 
             } catch (Exception ex) {
                 log.error("Failed processing portfolio {}", m.getPortfolioId(), ex);
                 failed.add(m);
             }
         }
+
+        // if (!snapshotRows.isEmpty()) {
+        //     try {
+        //         persistSnapshotService.persistSnapshot(snapshotRows);
+        //     } catch (Exception e) {
+        //         log.error("DB snapshot failed — Redis remains source of truth", e);
+        //     }
+        // }
 
         try {
             wsHandler.broadcast(fetchTop(50));
@@ -158,8 +143,8 @@ public class LeaderboardService {
         long start = Math.max(0, centerRank - range);
         long end = centerRank + range;
 
-        Set<ZSetOperations.TypedTuple<String>> slice
-                = redis.opsForZSet().reverseRangeWithScores(ZKEY, start, end);
+        Set<ZSetOperations.TypedTuple<String>> slice =
+                redis.opsForZSet().reverseRangeWithScores(ZKEY, start, end);
 
         List<Map<String, Object>> rows = new ArrayList<>();
         long rank = start + 1;
@@ -167,16 +152,16 @@ public class LeaderboardService {
         if (slice != null) {
             for (var t : slice) {
                 String pid = t.getValue();
-                Map<Object, Object> h
-                        = redis.opsForHash().entries(HKEY_PREFIX + pid);
+                Map<Object, Object> h =
+                        redis.opsForHash().entries(HKEY_PREFIX + pid);
 
                 Map<String, Object> r = new HashMap<>();
                 r.put("rank", rank++);
                 r.put("portfolioId", pid);
                 r.put("compositeScore", t.getScore());
-                r.put("sharpeRatio", h.get("sharpeRatio"));
-                r.put("sortinoRatio", h.get("sortinoRatio"));
-                r.put("avgRateOfReturn", h.get("avgRateOfReturn"));
+                r.put("sharpe", h.get("sharpe"));
+                r.put("sortino", h.get("sortino"));
+                r.put("avgReturn", h.get("avgReturn"));
                 r.put("updatedAt", h.get("updatedAt"));
 
                 rows.add(r);
@@ -191,10 +176,11 @@ public class LeaderboardService {
         );
     }
 
+
     private Map<String, Object> fetchTop(int n) {
 
-        Set<ZSetOperations.TypedTuple<String>> top
-                = redis.opsForZSet().reverseRangeWithScores(ZKEY, 0, n - 1);
+        Set<ZSetOperations.TypedTuple<String>> top =
+                redis.opsForZSet().reverseRangeWithScores(ZKEY, 0, n - 1);
 
         List<Map<String, Object>> rows = new ArrayList<>();
         int rank = 1;
@@ -202,16 +188,16 @@ public class LeaderboardService {
         if (top != null) {
             for (var t : top) {
                 String pid = t.getValue();
-                Map<Object, Object> h
-                        = redis.opsForHash().entries(HKEY_PREFIX + pid);
+                Map<Object, Object> h =
+                        redis.opsForHash().entries(HKEY_PREFIX + pid);
 
                 Map<String, Object> r = new HashMap<>();
                 r.put("rank", rank++);
                 r.put("portfolioId", pid);
                 r.put("compositeScore", t.getScore());
-                r.put("sharpeRatio", h.get("sharpeRatio"));
-                r.put("sortinoRatio", h.get("sortinoRatio"));
-                r.put("avgRateOfReturn", h.get("avgRateOfReturn"));
+                r.put("sharpe", h.get("sharpe"));
+                r.put("sortino", h.get("sortino"));
+                r.put("avgReturn", h.get("avgReturn"));
                 r.put("updatedAt", h.get("updatedAt"));
 
                 rows.add(r);

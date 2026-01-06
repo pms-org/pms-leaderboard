@@ -13,7 +13,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "leaderboard_snapshot")
+@Table(name = "Leaderboard_Snapshot")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -26,19 +26,19 @@ public class Leaderboard_Snapshot {
     @Column(name = "portfolio_id", nullable = false)
     private UUID portfolioId;
 
-    @Column(name = "portfolio_score", nullable= false)
+    @Column(name = "portfolio_score")
     private BigDecimal portfolioScore;
 
-    @Column(name = "leaderboard_ranking", nullable= false)
+    @Column(name = "leaderboard_ranking")
     private Long leaderboardRanking;
 
-    @Column(name = "avg_rate_of_return", nullable = false)
-    private BigDecimal avgRateOfReturn;
+    @Column(name = "avg_rate_of_return")
+    private  BigDecimal avgRateOfReturn;
 
-    @Column(name = "sharpe_ratio", nullable = false)
+    @Column(name = "sharpe_ratio")
     private BigDecimal sharpeRatio;
 
-    @Column(name = "sortino_ratio", nullable = false)
+    @Column(name = "sortino_ratio")
     private BigDecimal sortinoRatio;
 
     @Column(name = "updated_at", nullable = false)
