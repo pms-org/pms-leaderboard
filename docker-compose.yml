@@ -21,12 +21,20 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DELETE_TOPIC_ENABLE: "false"
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_NUM_PARTITIONS: 8
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
     networks:
       - redis-net
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server=localhost:9092"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.6.0
@@ -42,6 +50,12 @@ services:
       
     networks:
       - redis-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      interval: 5s
+      timeout: 15s
+      retries: 10
+      start_period: 20s
 
   redis-master:
     image: redis:7
@@ -123,31 +137,50 @@ services:
       POSTGRES_USER: leaderboard
       POSTGRES_PASSWORD: leaderboard_password
       POSTGRES_DB: leaderboard_db
+      TZ: Asia/Kolkata
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
       - redis-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leaderboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
     image: ${BACKEND_IMAGE}:${IMAGE_TAG}
     container_name: pms-leaderboard-backend
-    depends_on: 
-      - kafka
-      - redis-sentinel-1
-      - redis-sentinel-2
-      - redis-sentinel-3
-      - redis-master
-      - redis-replica-1
-      - redis-replica-2
-      - postgres
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis-sentinel-1:
+        condition: service_started
+      redis-sentinel-2:
+        condition: service_started
+      redis-sentinel-3:
+        condition: service_started
+      redis-master:
+        condition: service_started
+      redis-replica-1:
+        condition: service_started
+      redis-replica-2:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
     env_file:
       - .env
-    ports:
-      - "8000:8000"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8000:8000"
     networks:
       - redis-net
 

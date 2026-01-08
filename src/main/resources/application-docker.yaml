@@ -33,20 +33,35 @@ spring:
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    admin:
+      auto-create: true
+      fail-fast: false
+    producer:
+      properties:
+        schema.registry.url: ${KAFKA_SCHEMA_REGISTRY_URL}
+        auto.register.schemas: true
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP_ID}
       max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS}
       enable-auto-commit: ${KAFKA_CONSUMER_ENABLE_AUTO_COMMIT}
       auto-offset-reset: ${KAFKA_CONSUMER_AUTO_OFFSET_RESET}
+      properties:
+        allow.auto.create.topics: true
     properties:
       schema.registry.url: ${KAFKA_SCHEMA_REGISTRY_URL}
+      auto.register.schemas: false
 
 server:
   port: ${SERVER_PORT:8000}
 
-  logging:
+logging:
   level:
     root: DEBUG                     # show all logs
     com.pms.leaderboard: DEBUG      # your package logs
   pattern:
     console: "%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"
+
+# App-specific Kafka configuration
+app:
+  kafka:
+    risk-topic: portfolio-risk-metrics

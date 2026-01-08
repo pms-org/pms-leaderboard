@@ -1,9 +1,11 @@
 package com.pms.leaderboard.events;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -14,7 +16,10 @@ import com.pms.proto.analytics.RiskEvent;
 
 @Service
 public class AnalyticsProducer {
-    
+
+    @Value("${app.kafka.risk-topic}")
+    private String riskTopicName;
+
     @Autowired
     KafkaTemplate<String, RiskEvent> riskEventKafkaTemplate;
 
@@ -59,28 +64,32 @@ public class AnalyticsProducer {
     private int index = 0;
 
     @Scheduled(fixedRate = 5000)
-    public void sendMessage() throws Exception {
+    public void sendMessage() {
+        try {
+            UUID pid = portfolioIds[index % portfolioIds.length];
+            index++;
 
-        UUID pid = portfolioIds[index % portfolioIds.length];
-        index++;
+            BigDecimal sharpe  = random(1.0, 5.0);
+            BigDecimal sortino = random(0.1, 3.0);
+            BigDecimal avgRor  = random(0.1, 1.5);
 
-        BigDecimal sharpe  = random(1.0, 5.0);
-        BigDecimal sortino = random(0.1, 3.0);
-        BigDecimal avgRor  = random(0.1, 1.5);
+            RiskEvent event = RiskEvent.newBuilder()
+                    .setPortfolioId(pid.toString())             
+                    .setSharpeRatio(sharpe.doubleValue())
+                    .setSortinoRatio(sortino.doubleValue())
+                    .setAvgRateOfReturn(avgRor.doubleValue())
+                    .build();
 
-        RiskEvent event = RiskEvent.newBuilder()
-                .setPortfolioId(pid.toString())             
-                .setSharpeRatio(sharpe.doubleValue())
-                .setSortinoRatio(sortino.doubleValue())
-                .setAvgRateOfReturn(avgRor.doubleValue())
-                .build();
-
-        riskEventKafkaTemplate.send("portfolio-risk-metrics", pid.toString(), event);
-        System.out.println("Sent Protobuf RiskEvent: " + event);
+            riskEventKafkaTemplate.send(riskTopicName, pid.toString(), event);
+            System.out.println("Sent Protobuf RiskEvent: " + event);
+        } catch (Exception e) {
+            System.err.println("Error sending Kafka message: " + e.getMessage());
+            // Log error but don't rethrow - allow app to continue
+        }
     }
 
     private BigDecimal random(double min, double max) {
         return BigDecimal.valueOf(min + Math.random() * (max - min))
-                .setScale(2, BigDecimal.ROUND_HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
     }
 }

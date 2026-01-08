@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -23,13 +24,16 @@ public class AnalyticsConsumer {
         LoggerFactory.getLogger(AnalyticsConsumer.class);
 
 
+    @Value("${app.kafka.risk-topic}")
+    private String riskTopicName;
+
     @Autowired
     WebSocketHandler handler;
 
     @Autowired
     LeaderboardService leaderboardService;
 
-    @KafkaListener(topics = "portfolio-risk-metrics", containerFactory = "kafkaListenerContainerFactory")
+    @KafkaListener(topics = "${app.kafka.risk-topic}", containerFactory = "kafkaListenerContainerFactory")
     public void consume(List<RiskEvent> events) {
 
         if (events == null || events.isEmpty()) {
@@ -83,9 +87,5 @@ public class AnalyticsConsumer {
         log.debug("DTO created {}", dto);
         return dto;
     }
-
-//     private MessageDTO toDto(RiskEvent e) {
-//     throw new RuntimeException("TEST");
-// }
 
 }

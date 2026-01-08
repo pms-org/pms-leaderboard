@@ -1,17 +1,17 @@
 pipeline {
     agent any
-    tools {
-        jdk 'java-21'
-        maven 'maven-3.9.12'
-    }
+    // tools {
+    //     jdk 'java-21'
+    //     maven 'maven-3.9.12'
+    // }
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('leaderboard-dockerhub-creds')
         BACKEND_IMAGE = "${DOCKER_HUB_CREDENTIALS_USR}/pms-leaderboard-backend"
         VERSION = "${BUILD_NUMBER}"
         IMAGE_TAG = "${VERSION}"
-        EC2_IP="3.16.82.6"
+        EC2_IP="3.149.228.116"
         EC2_HOST="ubuntu@${EC2_IP}"
-        SERVER_URL="http://${EC2_IP}:8000"
+        // SERVER_URL="http://${EC2_IP}:8000"
     }
 
     stages {
@@ -61,53 +61,53 @@ pipeline {
             }
         }
 
-        // stage('Deploy with Docker Compose') {
-        //     steps {
-        //         echo 'Deploying locally using docker-compose.yml...'
-        //         sh """
-        //           docker compose down || true
-        //           docker compose pull backend
-        //           docker compose up -d
-
-        //           echo "Deployment complete. Running containers:"
-        //           docker ps
-        //         """
-        //     }
-        // }
-
-
-        stage('Deploy to EC2') {
+        stage('Deploy with Docker Compose') {
             steps {
-                sshagent(['leaderboard-ssh-key']) {
-                    withCredentials([file(credentialsId: 'leaderboard-env', variable: 'ENV_FILE')]) {
+                echo 'Deploying locally using docker-compose.yml...'
+                sh """
+                  docker compose down || true
+                  docker compose pull backend
+                  docker compose up -d
 
-                        // Copy compose file
-                        sh '''
-                        scp -o StrictHostKeyChecking=no \
-                            docker-compose.yml \
-                            $EC2_HOST:/home/ubuntu/docker-compose.yml
-                        '''
-
-                        // Copy .env inside EC2 from Jenkins secret file
-                        sh '''
-                        scp -o StrictHostKeyChecking=no "$ENV_FILE" "$EC2_HOST:/home/ubuntu/.env"
-                        '''
-
-                        // Deploy containers
-                        sh """
-                        ssh -o StrictHostKeyChecking=no $EC2_HOST "
-                            docker compose --env-file /home/ubuntu/.env down || true
-                            docker compose --env-file /home/ubuntu/.env pull backend
-                            docker compose --env-file /home/ubuntu/.env up -d
-
-                            echo Deployment complete. Running containers:
-                            docker ps
-                        "
-                        """
-                    }
-                }
+                  echo "Deployment complete. Running containers:"
+                  docker ps
+                """
             }
         }
+
+
+        // stage('Deploy to EC2') {
+        //     steps {
+        //         sshagent(['leaderboard-ssh-key']) {
+        //             withCredentials([file(credentialsId: 'leaderboard-env', variable: 'ENV_FILE')]) {
+
+        //                 // Copy compose file
+        //                 sh '''
+        //                 scp -o StrictHostKeyChecking=no \
+        //                     docker-compose.yml \
+        //                     $EC2_HOST:/home/ubuntu/docker-compose.yml
+        //                 '''
+
+        //                 // Copy .env inside EC2 from Jenkins secret file
+        //                 sh '''
+        //                 scp -o StrictHostKeyChecking=no "$ENV_FILE" "$EC2_HOST:/home/ubuntu/.env"
+        //                 '''
+
+        //                 // Deploy containers
+        //                 sh """
+        //                 ssh -o StrictHostKeyChecking=no $EC2_HOST "
+        //                     docker compose --env-file /home/ubuntu/.env down || true
+        //                     docker compose --env-file /home/ubuntu/.env pull backend
+        //                     docker compose --env-file /home/ubuntu/.env up -d
+
+        //                     echo Deployment complete. Running containers:
+        //                     docker ps
+        //                 "
+        //                 """
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     post {

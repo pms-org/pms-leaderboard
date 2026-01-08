@@ -174,10 +174,10 @@ public class LeaderboardService {
                 r.put("rank", rank++);
                 r.put("portfolioId", pid);
                 r.put("compositeScore", t.getScore());
-                r.put("sharpeRatio", h.get("sharpeRatio"));
-                r.put("sortinoRatio", h.get("sortinoRatio"));
-                r.put("avgRateOfReturn", h.get("avgRateOfReturn"));
-                r.put("updatedAt", h.get("updatedAt"));
+                r.put("sharpe", h.get("sharpeRatio"));
+                r.put("sortino", h.get("sortinoRatio"));
+                r.put("avgReturn", h.get("avgRateOfReturn"));
+                r.put("updated", h.get("updatedAt"));
 
                 rows.add(r);
             }
@@ -209,10 +209,10 @@ public class LeaderboardService {
                 r.put("rank", rank++);
                 r.put("portfolioId", pid);
                 r.put("compositeScore", t.getScore());
-                r.put("sharpeRatio", h.get("sharpeRatio"));
-                r.put("sortinoRatio", h.get("sortinoRatio"));
-                r.put("avgRateOfReturn", h.get("avgRateOfReturn"));
-                r.put("updatedAt", h.get("updatedAt"));
+                r.put("sharpe", h.get("sharpeRatio"));
+                r.put("sortino", h.get("sortinoRatio"));
+                r.put("avgReturn", h.get("avgRateOfReturn"));
+                r.put("updated", h.get("updatedAt"));
 
                 rows.add(r);
             }
