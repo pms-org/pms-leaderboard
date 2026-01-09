@@ -11,7 +11,7 @@ pipeline {
         IMAGE_TAG = "${VERSION}"
         EC2_IP="3.149.228.116"
         EC2_HOST="ubuntu@${EC2_IP}"
-        // SERVER_URL="http://${EC2_IP}:8000"
+        SERVER_URL="http://${EC2_IP}:8000"
     }
 
     stages {
@@ -128,3 +128,6 @@ pipeline {
         }
     }
 }
+
+
+//test commit for docker building
