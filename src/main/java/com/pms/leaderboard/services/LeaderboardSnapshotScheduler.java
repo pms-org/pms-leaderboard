@@ -34,7 +34,7 @@ public class LeaderboardSnapshotScheduler {
             List<LeaderboardDTO> top = leaderboardService.fetchTop(TOP_N);
             wsHandler.broadcastSnapshot(top);
 
-            log.debug("Leaderboard snapshot sent: {} rows", top.size());
+            log.debug(" 📊📊 Leaderboard snapshot sent: {} rows", top.size());
         } catch (Exception e) {
             log.warn("Failed to publish leaderboard snapshot", e);
         }

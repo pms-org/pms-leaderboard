@@ -14,9 +14,13 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+
 import com.pms.leaderboard.dto.LeaderboardDTO;
 import com.pms.leaderboard.services.LeaderboardService;
-import tools.jackson.databind.ObjectMapper;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+
 
 @Component
 public class WebSocketHandler extends TextWebSocketHandler {
@@ -34,7 +38,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        System.out.println("Client Connected: " + session.getId());
+        System.out.println(" 😊😊😊 Client Connected: " + session.getId());
     }
 
     @Override
@@ -43,6 +47,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
     }
 
     public void broadcastSnapshot(List<LeaderboardDTO> list) {
+
+        log.info(" 🛜🛜🛜 WS broadcast to {} sessions", sessions.size());
+        System.out.println("WS broadcast to " + sessions.size() + " sessions");
 
         Map<String, Object> payload = Map.of(
                 "event", "leaderboardSnapshot",

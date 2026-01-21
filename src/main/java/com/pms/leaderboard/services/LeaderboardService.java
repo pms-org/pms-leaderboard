@@ -27,8 +27,6 @@ public class LeaderboardService {
     @Autowired
     private StringRedisTemplate redis;
 
-    // @Autowired
-    // private WebSocketHandler wsHandler;
     @Autowired
     private RedisScoreService redisScoreService;
 
@@ -81,12 +79,16 @@ public class LeaderboardService {
                         score, Instant.now(), pid
                 );
 
+                log.debug("BEFORE LUA pid={}", pid);
+
                 Long rank = redis.execute(
                         rscript.upsertAndRank(),
                         List.of(ZKEY),
                         String.valueOf(redisScore),
                         pid.toString()
                 );
+
+                log.debug("AFTER LUA pid={} rank={}", pid, rank);
 
                 if (rank == null) {
                     throw new IllegalStateException("Redis rank failed");
@@ -129,7 +131,7 @@ public class LeaderboardService {
                 failed.add(m);
             }
         }
-        
+
         if (!failed.isEmpty()) {
             log.warn("Failed portfolios count = {}", failed.size());
         }
@@ -189,31 +191,6 @@ public class LeaderboardService {
         );
     }
 
-    // public List<MessageDTO> fetchTop(int n) {
-    //     Set<ZSetOperations.TypedTuple<String>> top
-    //             = redis.opsForZSet().reverseRangeWithScores(ZKEY, 0, n - 1);
-    //     List<Map<String, Object>> rows = new ArrayList<>();
-    //     int rank = 1;
-    //     if (top != null) {
-    //         for (var t : top) {
-    //             String pid = t.getValue();
-    //             Map<Object, Object> h
-    //                     = redis.opsForHash().entries(HKEY_PREFIX + pid);
-    //             Map<String, Object> r = new HashMap<>();
-    //             r.put("rank", rank++);
-    //             r.put("portfolioId", pid);
-    //             r.put("compositeScore", t.getScore());
-    //             r.put("sharpe", h.get("sharpeRatio"));
-    //             r.put("sortino", h.get("sortinoRatio"));
-    //             r.put("avgReturn", h.get("avgRateOfReturn"));
-    //             r.put("updated", h.get("updatedAt"));
-    //             rows.add(r);
-    //         }
-    //     }
-    //     return rows;
-    // }
-    
-    
     public List<LeaderboardDTO> fetchTop(int n) {
 
         Set<ZSetOperations.TypedTuple<String>> top

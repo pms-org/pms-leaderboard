@@ -80,12 +80,11 @@ public class LeaderboardStreamConsumer {
         int retry = retryObj == null ? 0 : Integer.parseInt(retryObj.toString());
 
         try {
-            
-            if (true) {
-                throw new RuntimeException("FORCED ERROR → DLQ TEST");
-            }
 
-            // persist.persistSnapshot(List.of(map(msg)));
+            // if (true) {
+            //     throw new RuntimeException("FORCED ERROR → DLQ TEST");
+            // }
+            persist.persistSnapshot(List.of(map(msg)));
             // ACK + clear retry counter
             redis.opsForStream().acknowledge(STREAM_KEY, GROUP, id);
             redis.opsForHash().delete(RETRY_HASH, id);
@@ -145,6 +144,12 @@ public class LeaderboardStreamConsumer {
      */
     private void moveToDLQ(MapRecord<String, Object, Object> msg) {
         log.error("❌ MOVING {} → DLQ", msg.getId());
+
+        log.error(
+                "DLQ: id={} after {} retries payload={}",
+                msg.getId(),
+                msg.getValue()
+        );
 
         redis.opsForStream().add(
                 StreamRecords.newRecord()
