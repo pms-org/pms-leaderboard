@@ -30,14 +30,14 @@ public class KafkaTopicConfig {
     public KafkaAdmin kafkaAdmin() {
         Map<String, Object> configs = new HashMap<>();
         configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        log.info("✅ KafkaAdmin bean created with bootstrap servers: {}", bootstrapServers);
+        log.info(" KafkaAdmin bean created with bootstrap servers: {}", bootstrapServers);
         this.kafkaAdmin = new KafkaAdmin(configs);
         return this.kafkaAdmin;
     }
 
     @Bean
     public NewTopic riskTopic() {
-        log.info("✅ NewTopic bean definition - portfolio-risk-metrics with 8 partitions and 1 replica");
+        log.info(" NewTopic bean definition - portfolio-risk-metrics with 8 partitions and 1 replica");
         this.riskTopicBean = TopicBuilder.name("portfolio-risk-metrics")
                 .partitions(8)
                 .replicas(1)
@@ -47,17 +47,17 @@ public class KafkaTopicConfig {
 
     @EventListener(ApplicationStartedEvent.class)
     public void onApplicationEvent(ApplicationStartedEvent event) {
-        log.info("✅ Application started - Kafka topic configuration event triggered");
+        log.info(" Application started - Kafka topic configuration event triggered");
         if (kafkaAdmin != null && riskTopicBean != null) {
             try {
                 // Create the topic with specified partitions
                 kafkaAdmin.createOrModifyTopics(riskTopicBean);
-                log.info("✅ Topic creation initiated for portfolio-risk-metrics with 8 partitions");
+                log.info(" Topic creation initiated for portfolio-risk-metrics with 8 partitions");
             } catch (Exception e) {
-                log.warn("⚠️ Error creating topic (may already exist): {}", e.getMessage());
+                log.warn(" Error creating topic (may already exist): {}", e.getMessage());
             }
         } else {
-            log.warn("⚠️ KafkaAdmin or riskTopicBean not initialized");
+            log.warn(" KafkaAdmin or riskTopicBean not initialized");
         }
     }
 }

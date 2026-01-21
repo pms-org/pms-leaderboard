@@ -58,15 +58,16 @@
   let lastRanks = {};
   let filtered = [];
   let page = 1;
-  const pageSize = 10;
+  const pageSize = 20;
 
-  ws.onmessage = (evt) => {
+  ws.onmessage = throttle((evt) => {
+    console.log("UI update", Date.now());
     const msg = JSON.parse(evt.data);
     if (msg.event === "leaderboardSnapshot") {
       applySnapshot(msg.top);
       applyFilter();
     }
-  };
+  }, 5);
 
   function applySnapshot(list) {
     list.forEach(u => {
@@ -84,6 +85,9 @@
       };
     });
   }
+
+  console.log("WS_RECV", Date.now());
+
 
   function applyFilter() {
     const search = document.getElementById("search").value.toLowerCase();

@@ -2,6 +2,7 @@ package com.pms.leaderboard.services;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,8 +17,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
-import com.pms.leaderboard.Handler.WebSocketHandler;
 import com.pms.leaderboard.dto.BatchDTO;
+import com.pms.leaderboard.dto.LeaderboardDTO;
 import com.pms.leaderboard.dto.MessageDTO;
 
 @Service
@@ -26,9 +27,8 @@ public class LeaderboardService {
     @Autowired
     private StringRedisTemplate redis;
 
-    @Autowired
-    private WebSocketHandler wsHandler;
-
+    // @Autowired
+    // private WebSocketHandler wsHandler;
     @Autowired
     private RedisScoreService redisScoreService;
 
@@ -103,20 +103,24 @@ public class LeaderboardService {
 
                 log.debug("HASH written {}", hkey);
 
-
-                // 🔥 WRITE-THROUGH EVENT (Redis Stream)
-                redis.opsForStream().add(
-                        STREAM_KEY,
-                        Map.of(
-                                "portfolioId", pid.toString(),
-                                "score", score.toString(),
-                                "rank", String.valueOf(rank + 1),
-                                "sharpeRatio", m.getSharpeRatio().toString(),
-                                "sortinoRatio", m.getSortinoRatio().toString(),
-                                "avgRateOfReturn", m.getAvgRateOfReturn().toString(),
-                                "updatedAt", Instant.now().toString()
-                        )
-                );
+                //  WRITE-THROUGH EVENT (Redis Stream)
+                try {
+                    redis.opsForStream().add(
+                            STREAM_KEY,
+                            Map.of(
+                                    "portfolioId", pid.toString(),
+                                    "score", score.toString(),
+                                    "rank", String.valueOf(rank + 1),
+                                    "sharpeRatio", m.getSharpeRatio().toString(),
+                                    "sortinoRatio", m.getSortinoRatio().toString(),
+                                    "avgRateOfReturn", m.getAvgRateOfReturn().toString(),
+                                    "updatedAt", Instant.now().toString(),
+                                    "retry", "0"
+                            )
+                    );
+                } catch (Exception e) {
+                    log.error("Failed to write STREAM for portfolio {}", pid, e);
+                }
 
                 log.info("STREAM write OK pid={} rank={}", pid, rank + 1);
 
@@ -125,20 +129,14 @@ public class LeaderboardService {
                 failed.add(m);
             }
         }
-
-        try {
-            wsHandler.broadcast(fetchTop(50));
-        } catch (Exception e) {
-            log.warn("WebSocket broadcast failed", e);
-        }
-
+        
         if (!failed.isEmpty()) {
             log.warn("Failed portfolios count = {}", failed.size());
         }
     }
 
     public Map<String, Object> getTop(int n) {
-        return fetchTop(n);
+        return (Map<String, Object>) fetchTop(n);
     }
 
     public Map<String, Object> getAround(String portfolioId, int range) {
@@ -191,13 +189,38 @@ public class LeaderboardService {
         );
     }
 
-    private Map<String, Object> fetchTop(int n) {
+    // public List<MessageDTO> fetchTop(int n) {
+    //     Set<ZSetOperations.TypedTuple<String>> top
+    //             = redis.opsForZSet().reverseRangeWithScores(ZKEY, 0, n - 1);
+    //     List<Map<String, Object>> rows = new ArrayList<>();
+    //     int rank = 1;
+    //     if (top != null) {
+    //         for (var t : top) {
+    //             String pid = t.getValue();
+    //             Map<Object, Object> h
+    //                     = redis.opsForHash().entries(HKEY_PREFIX + pid);
+    //             Map<String, Object> r = new HashMap<>();
+    //             r.put("rank", rank++);
+    //             r.put("portfolioId", pid);
+    //             r.put("compositeScore", t.getScore());
+    //             r.put("sharpe", h.get("sharpeRatio"));
+    //             r.put("sortino", h.get("sortinoRatio"));
+    //             r.put("avgReturn", h.get("avgRateOfReturn"));
+    //             r.put("updated", h.get("updatedAt"));
+    //             rows.add(r);
+    //         }
+    //     }
+    //     return rows;
+    // }
+    
+    
+    public List<LeaderboardDTO> fetchTop(int n) {
 
         Set<ZSetOperations.TypedTuple<String>> top
                 = redis.opsForZSet().reverseRangeWithScores(ZKEY, 0, n - 1);
 
-        List<Map<String, Object>> rows = new ArrayList<>();
-        int rank = 1;
+        List<LeaderboardDTO> rows = new ArrayList<>();
+        long rank = 1;
 
         if (top != null) {
             for (var t : top) {
@@ -205,24 +228,19 @@ public class LeaderboardService {
                 Map<Object, Object> h
                         = redis.opsForHash().entries(HKEY_PREFIX + pid);
 
-                Map<String, Object> r = new HashMap<>();
-                r.put("rank", rank++);
-                r.put("portfolioId", pid);
-                r.put("compositeScore", t.getScore());
-                r.put("sharpe", h.get("sharpeRatio"));
-                r.put("sortino", h.get("sortinoRatio"));
-                r.put("avgReturn", h.get("avgRateOfReturn"));
-                r.put("updated", h.get("updatedAt"));
-
-                rows.add(r);
+                rows.add(new LeaderboardDTO(
+                        rank++,
+                        UUID.fromString(pid),
+                        t.getScore(),
+                        new BigDecimal(h.get("avgRateOfReturn").toString()),
+                        new BigDecimal(h.get("sharpeRatio").toString()),
+                        new BigDecimal(h.get("sortinoRatio").toString()),
+                        h.get("updatedAt").toString()
+                ));
             }
         }
 
-        return Map.of(
-                "event", "leaderboardSnapshot",
-                "timestamp", Instant.now().toEpochMilli(),
-                "top", rows
-        );
+        return rows;
     }
 
     private BigDecimal computeScore(MessageDTO e) {

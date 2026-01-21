@@ -74,40 +74,6 @@ pipeline {
                 """
             }
         }
-
-
-        // stage('Deploy to EC2') {
-        //     steps {
-        //         sshagent(['leaderboard-ssh-key']) {
-        //             withCredentials([file(credentialsId: 'leaderboard-env', variable: 'ENV_FILE')]) {
-
-        //                 // Copy compose file
-        //                 sh '''
-        //                 scp -o StrictHostKeyChecking=no \
-        //                     docker-compose.yml \
-        //                     $EC2_HOST:/home/ubuntu/docker-compose.yml
-        //                 '''
-
-        //                 // Copy .env inside EC2 from Jenkins secret file
-        //                 sh '''
-        //                 scp -o StrictHostKeyChecking=no "$ENV_FILE" "$EC2_HOST:/home/ubuntu/.env"
-        //                 '''
-
-        //                 // Deploy containers
-        //                 sh """
-        //                 ssh -o StrictHostKeyChecking=no $EC2_HOST "
-        //                     docker compose --env-file /home/ubuntu/.env down || true
-        //                     docker compose --env-file /home/ubuntu/.env pull backend
-        //                     docker compose --env-file /home/ubuntu/.env up -d
-
-        //                     echo Deployment complete. Running containers:
-        //                     docker ps
-        //                 "
-        //                 """
-        //             }
-        //         }
-        //     }
-        // }
     }
 
     post {

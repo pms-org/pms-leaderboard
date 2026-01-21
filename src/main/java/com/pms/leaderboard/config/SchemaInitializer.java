@@ -1,17 +1,18 @@
 package com.pms.leaderboard.config;
 
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
-import jakarta.annotation.PostConstruct;
+import java.io.IOException;
+import java.util.Collections;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.Collections;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class SchemaInitializer {
@@ -31,10 +32,9 @@ public class SchemaInitializer {
         
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                logger.info("📋 Attempting to register schema (attempt {}/{})", attempt, maxRetries);
+                logger.info(" Attempting to register schema (attempt {}/{})", attempt, maxRetries);
                 
                 if (attempt > 1) {
-                    // Wait before retrying (skip on first attempt)
                     Thread.sleep(delayMs);
                 }
                 
@@ -60,37 +60,35 @@ public class SchemaInitializer {
                             """;
 
                     try {
-                        // Check if schema already exists
                         int schemaId = client.getLatestSchemaMetadata(subject).getId();
-                        logger.info("✅ Schema already registered with ID: {}", schemaId);
-                        return; // Success - exit
+                        logger.info(" Schema already registered with ID: {}", schemaId);
+                        return; 
                     } catch (RestClientException e) {
                         if (e.getErrorCode() == 40401) {
-                            // Schema not found, register it
                             ProtobufSchema schema = new ProtobufSchema(protobufSchema);
                             int schemaId = client.register(subject, schema);
-                            logger.info("✅ Schema registered successfully with ID: {}", schemaId);
-                            return; // Success - exit
+                            logger.info(" Schema registered successfully with ID: {}", schemaId);
+                            return; 
                         } else {
-                            logger.error("❌ Schema Registry error code {}: {}", e.getErrorCode(), e.getMessage());
+                            logger.error(" Schema Registry error code {}: {}", e.getErrorCode(), e.getMessage());
                             throw e;
                         }
                     }
                 }
             } catch (InterruptedException e) {
-                logger.warn("⚠️ Schema initialization interrupted");
+                logger.warn(" Schema initialization interrupted");
                 Thread.currentThread().interrupt();
                 break;
             } catch (IOException | RestClientException e) {
                 if (attempt < maxRetries) {
-                    logger.warn("⚠️ Attempt {}/{} failed: {}. Retrying in {}ms...", 
+                    logger.warn(" Attempt {}/{} failed: {}. Retrying in {}ms...", 
                             attempt, maxRetries, e.getMessage(), delayMs);
                 } else {
-                    logger.error("❌ Schema initialization failed after {} attempts: {}", 
+                    logger.error(" Schema initialization failed after {} attempts: {}", 
                             maxRetries, e.getMessage());
                 }
             } catch (Exception e) {
-                logger.error("❌ Unexpected error during schema initialization (attempt {}/{})", 
+                logger.error(" Unexpected error during schema initialization (attempt {}/{})", 
                         attempt, maxRetries, e);
                 if (attempt >= maxRetries) {
                     break;
@@ -98,6 +96,6 @@ public class SchemaInitializer {
             }
         }
         
-        logger.warn("⚠️ Schema may not be registered. Relying on producer auto-registration.");
+        logger.warn(" Schema may not be registered. Relying on producer auto-registration.");
     }
 }

@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -16,6 +18,8 @@ import com.pms.proto.analytics.RiskEvent;
 
 @Service
 public class AnalyticsProducer {
+
+    private static final Logger log = LoggerFactory.getLogger(AnalyticsProducer.class);
 
     @Value("${app.kafka.risk-topic}")
     private String riskTopicName;
@@ -63,7 +67,7 @@ public class AnalyticsProducer {
 
     private int index = 0;
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 1000)
     public void sendMessage() {
         try {
             UUID pid = portfolioIds[index % portfolioIds.length];
@@ -81,7 +85,11 @@ public class AnalyticsProducer {
                     .build();
 
             riskEventKafkaTemplate.send(riskTopicName, pid.toString(), event);
+            
+            log.info("Produced message at {}", System.currentTimeMillis());
+            System.out.println("Produced message at " + System.currentTimeMillis());
             System.out.println("Sent Protobuf RiskEvent: " + event);
+
         } catch (Exception e) {
             System.err.println("Error sending Kafka message: " + e.getMessage());
             // Log error but don't rethrow - allow app to continue

@@ -1,6 +1,7 @@
 package com.pms.leaderboard.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -17,5 +18,4 @@ public class BatchDTO {
     private BigDecimal avgRateOfReturn;
     private BigDecimal sharpeRatio;
     private BigDecimal sortinoRatio;
-
 }
