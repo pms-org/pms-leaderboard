@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-import com.pms.leaderboard.Handler.WebSocketHandler;
+
 import com.pms.leaderboard.config.EventBuffer;
 import com.pms.leaderboard.dto.MessageDTO;
 import com.pms.leaderboard.services.LeaderboardService;
@@ -26,9 +26,6 @@ public class AnalyticsConsumer {
 
     @Value("${app.kafka.risk-topic}")
     private String riskTopicName;
-
-    // @Autowired
-    // WebSocketHandler handler;
 
     @Autowired
     EventBuffer eventBuffer;
@@ -82,17 +79,8 @@ public class AnalyticsConsumer {
             dtos.add(dto);
         }
 
-        // <-- NEW: add to buffer instead of processing directly
         eventBuffer.addAll(dtos);
 
-        // try {
-        //     List<MessageDTO> dtos = events.stream()
-        //             .map(this::toDto)
-        //             .toList();
-        //     leaderboardService.processBatch(dtos);
-        // } catch (Exception e) {
-        //     throw e;
-        // }
     }
 
     private MessageDTO toDto(RiskEvent e) {

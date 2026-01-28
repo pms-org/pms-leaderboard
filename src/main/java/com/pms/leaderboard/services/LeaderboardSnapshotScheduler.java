@@ -1,18 +1,17 @@
 package com.pms.leaderboard.services;
 
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
-import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 import com.pms.leaderboard.Handler.WebSocketHandler;
 import com.pms.leaderboard.dto.LeaderboardDTO;
-import com.pms.leaderboard.dto.MessageDTO;
-import com.pms.leaderboard.services.LeaderboardService;
 
 @Component
 public class LeaderboardSnapshotScheduler {
@@ -28,15 +27,20 @@ public class LeaderboardSnapshotScheduler {
     @Autowired
     WebSocketHandler wsHandler;
 
+     @Autowired
+    @Qualifier("realtimeExecutor")
+    private ExecutorService realtimeExecutor;
+
     @Scheduled(fixedRate = 250)
     public void publishSnapshot() {
-        try {
-            List<LeaderboardDTO> top = leaderboardService.fetchTop(TOP_N);
-            wsHandler.broadcastSnapshot(top);
-
-            log.debug(" 📊📊 Leaderboard snapshot sent: {} rows", top.size());
-        } catch (Exception e) {
-            log.warn("Failed to publish leaderboard snapshot", e);
-        }
+        realtimeExecutor.submit(() -> {
+            try {
+                List<LeaderboardDTO> top = leaderboardService.fetchTop(TOP_N);
+                wsHandler.broadcastSnapshot(top);
+            } catch (Exception e) {
+                log.warn("Snapshot publish failed", e);
+            }
+        });
     }
+
 }
