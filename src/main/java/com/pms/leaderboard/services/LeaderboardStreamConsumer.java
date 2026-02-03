@@ -26,6 +26,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.pms.leaderboard.dto.BatchDTO;
+import com.pms.leaderboard.exceptions.DataValidationException;
+import com.pms.leaderboard.exceptions.TransientDbException;
 
 import jakarta.annotation.PostConstruct;
 
@@ -132,7 +134,7 @@ public class LeaderboardStreamConsumer {
                     try {
                         persist.persistSnapshot(List.of(map(msg)));
                         redis.opsForStream().acknowledge(RETRY_STREAM, GROUP, msg.getId());
-                    } catch (Exception e) {
+                    } catch (DataValidationException e) {
                         moveToDLQ(msg);
                         redis.opsForStream().acknowledge(RETRY_STREAM, GROUP, msg.getId());
                     }
@@ -145,37 +147,81 @@ public class LeaderboardStreamConsumer {
         }
     }
 
+    private int getRetryCount(String id) {
+        Object retryObj = redis.opsForHash().get(RETRY_HASH, id);
+        return retryObj == null ? 0 : Integer.parseInt(retryObj.toString());
+    }
+
+    // private void retryLoop() {
+    //     while (true) {
+    //         try {
+    //             if (!dbHealth.isAvailable()) {
+    //                 Thread.sleep(2000);
+    //                 continue;
+    //             }
+    //             List<MapRecord<String, Object, Object>> records
+    //                     = redis.opsForStream().read(
+    //                             Consumer.from(GROUP, CONSUMER),
+    //                             StreamReadOptions.empty().count(10).block(Duration.ofSeconds(3)),
+    //                             StreamOffset.create(RETRY_STREAM, ReadOffset.lastConsumed())
+    //                     );
+    //             if (records == null || records.isEmpty()) {
+    //                 continue;
+    //             }
+    //             for (var msg : records) {
+    //                 try {
+    //                     persist.persistSnapshot(List.of(map(msg)));
+    //                     redis.opsForStream().acknowledge(RETRY_STREAM, GROUP, msg.getId());
+    //                 } catch (Exception e) {
+    //                     moveToDLQ(msg);
+    //                     redis.opsForStream().acknowledge(RETRY_STREAM, GROUP, msg.getId());
+    //                 }
+    //             }
+    //         } catch (Exception e) {
+    //             log.error("Retry loop error", e);
+    //             sleep(2000);
+    //         }
+    //     }
+    // }
     // ---------- PROCESS ----------
     private void process(MapRecord<String, Object, Object> msg) {
 
         String id = msg.getId().toString();
-        int retry = redis.opsForHash().get(RETRY_HASH, id) == null ? 0
-                : Integer.parseInt(redis.opsForHash().get(RETRY_HASH, id).toString());
+        int retry = getRetryCount(id);
+
+        // ---- HARD BACKPRESSURE ----
+        if (!dbHealth.isAvailable()) {
+            log.warn("⏸ DB DOWN → message kept in PEL");
+            return;
+        }
 
         try {
-
-            if (!dbHealth.isAvailable()) {
-                log.warn("⏸ DB DOWN → message kept in PEL");
-                return; // no ack, no retry
-            }
-
             persist.persistSnapshot(List.of(map(msg)));
 
             redis.opsForStream().acknowledge(STREAM_KEY, GROUP, id);
             redis.opsForHash().delete(RETRY_HASH, id);
 
-        } catch (Exception ex) {
+        } // ---------- DATA ERROR → DLQ IMMEDIATELY ----------
+        catch (DataValidationException e) {
+            log.error("❌ Data error → DLQ id={}", id);
 
-            if (!dbHealth.isAvailable()) {
-                log.warn("⏸ DB DOWN → leave pending");
-                return;
-            }
+            moveToDLQ(msg);
+            redis.opsForStream().acknowledge(STREAM_KEY, GROUP, id);
+            redis.opsForHash().delete(RETRY_HASH, id);
+
+        } // ---------- TRANSIENT ERROR → RETRY ----------
+        catch (TransientDbException e) {
 
             if (retry + 1 >= MAX_RETRIES) {
+                log.error("❌ Retries exhausted → DLQ id={}", id);
+
                 moveToDLQ(msg);
                 redis.opsForStream().acknowledge(STREAM_KEY, GROUP, id);
                 redis.opsForHash().delete(RETRY_HASH, id);
+
             } else {
+                log.warn("🔁 Retry {} for id={}", retry + 1, id);
+
                 redis.opsForHash().increment(RETRY_HASH, id, 1);
                 redis.opsForStream().acknowledge(STREAM_KEY, GROUP, id);
                 redis.opsForStream().add(RETRY_STREAM, msg.getValue());
@@ -183,6 +229,34 @@ public class LeaderboardStreamConsumer {
         }
     }
 
+    // private void process(MapRecord<String, Object, Object> msg) {
+    //     String id = msg.getId().toString();
+    //     int retry = redis.opsForHash().get(RETRY_HASH, id) == null ? 0
+    //             : Integer.parseInt(redis.opsForHash().get(RETRY_HASH, id).toString());
+    //     try {
+    //         if (!dbHealth.isAvailable()) {
+    //             log.warn("⏸ DB DOWN → message kept in PEL");
+    //             return; // no ack, no retry
+    //         }
+    //         persist.persistSnapshot(List.of(map(msg)));
+    //         redis.opsForStream().acknowledge(STREAM_KEY, GROUP, id);
+    //         redis.opsForHash().delete(RETRY_HASH, id);
+    //     } catch (Exception ex) {
+    //         if (!dbHealth.isAvailable()) {
+    //             log.warn("⏸ DB DOWN → leave pending");
+    //             return;
+    //         }
+    //         if (retry + 1 >= MAX_RETRIES) {
+    //             moveToDLQ(msg);
+    //             redis.opsForStream().acknowledge(STREAM_KEY, GROUP, id);
+    //             redis.opsForHash().delete(RETRY_HASH, id);
+    //         } else {
+    //             redis.opsForHash().increment(RETRY_HASH, id, 1);
+    //             redis.opsForStream().acknowledge(STREAM_KEY, GROUP, id);
+    //             redis.opsForStream().add(RETRY_STREAM, msg.getValue());
+    //         }
+    //     }
+    // }
     // ---------- DLQ ----------
     private void moveToDLQ(MapRecord<String, Object, Object> msg) {
         log.error("❌ MOVING TO DLQ id={}", msg.getId());
