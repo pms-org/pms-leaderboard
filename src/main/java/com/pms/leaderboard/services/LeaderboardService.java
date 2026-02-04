@@ -36,6 +36,9 @@ public class LeaderboardService {
     private RedisLeaderboardScript rscript;
 
     @Autowired
+    private RedisHealth redisHealth;
+
+    @Autowired
     @Qualifier("redisExecutor")
     private ExecutorService redisExecutor;
 
@@ -151,6 +154,10 @@ public class LeaderboardService {
             return;
         }
 
+        if (!redisHealth.isAvailable()) {
+            throw new RuntimeException("Redis unavailable");
+        }
+
         log.info("Processing batch size={}", batchList.size());
 
         Map<UUID, MessageDTO> latest = new HashMap<>();
@@ -178,60 +185,104 @@ public class LeaderboardService {
                 );
 
                 // 👉 PURE COMPUTE ENDS HERE
-                // 👉 ALL IO MOVED TO redisExecutor
-                redisExecutor.submit(() -> {
-                    try {
-                        // ---- ZSET UPSERT + RANK ----
-                        Long rank = redis.execute(
-                                rscript.upsertAndRank(),
-                                List.of(ZKEY),
-                                String.valueOf(redisScore),
-                                pid.toString()
-                        );
+                // 👉 ALL IO MOVED TO redisExecutor with retry logic
+                // redisExecutor.submit(() -> {
+                //     try {
+                //         // Wrap all Redis writes with retry
+                //         executeWithRetry("redis-write-" + pid, () -> {
+                //             // ---- ZSET UPSERT + RANK ----
+                //             Long rank = redis.execute(
+                //                     rscript.upsertAndRank(),
+                //                     List.of(ZKEY),
+                //                     String.valueOf(redisScore),
+                //                     pid.toString()
+                //             );
+                //             if (rank == null) {
+                //                 throw new IllegalStateException("Redis rank failed");
+                //             }
+                //             // ---- HASH UPDATE ----
+                //             String hkey = HKEY_PREFIX + pid;
+                //             redis.opsForHash().put(hkey, "score", score.toString());
+                //             redis.opsForHash().put(hkey, "sharpeRatio", m.getSharpeRatio().toString());
+                //             redis.opsForHash().put(hkey, "sortinoRatio", m.getSortinoRatio().toString());
+                //             redis.opsForHash().put(hkey, "avgRateOfReturn", m.getAvgRateOfReturn().toString());
+                //             redis.opsForHash().put(hkey, "updatedAt", Instant.now().toString());
+                //             // ---- STREAM WRITE ----
+                //             redis.opsForStream().add(STREAM_KEY, Map.of(
+                //                     "portfolioId", pid.toString(),
+                //                     "score", score.toString(),
+                //                     "rank", String.valueOf(rank + 1),
+                //                     "avgRateOfReturn", m.getAvgRateOfReturn().toString(),
+                //                     "sharpeRatio", m.getSharpeRatio().toString(),
+                //                     "sortinoRatio", m.getSortinoRatio().toString(),
+                //                     "updatedAt", Instant.now().toString()
+                //             ));
+                //             log.info("REDIS WRITE OK pid={} rank={} (with retry)", pid, rank + 1);
+                //         });
+                //     } catch (Exception e) {
+                //         log.error("REDIS IO FAILED pid={} after retries", pid, e);
+                //         // optional infra-fail stream
+                //         try {
+                //             redis.opsForStream().add(
+                //                     "leaderboard:stream:infra-fail",
+                //                     Map.of(
+                //                             "portfolioId", pid.toString(),
+                //                             "error", "redis_write_failed_after_retry",
+                //                             "reason", e.getMessage(),
+                //                             "timestamp", Instant.now().toString()
+                //                     )
+                //             );
+                //         } catch (Exception ignored) {
+                //         }
+                //     }
+                // });
+                try {
 
-                        if (rank == null) {
-                            throw new IllegalStateException("Redis rank failed");
-                        }
+                    redisExecutor.submit(() -> {
 
-                        // ---- HASH UPDATE ----
-                        String hkey = HKEY_PREFIX + pid;
-                        redis.opsForHash().put(hkey, "score", score.toString());
-                        redis.opsForHash().put(hkey, "sharpeRatio", m.getSharpeRatio().toString());
-                        redis.opsForHash().put(hkey, "sortinoRatio", m.getSortinoRatio().toString());
-                        redis.opsForHash().put(hkey, "avgRateOfReturn", m.getAvgRateOfReturn().toString());
-                        redis.opsForHash().put(hkey, "updatedAt", Instant.now().toString());
+                        executeWithRetry("redis-write-" + pid, () -> {
 
-                        // ---- STREAM WRITE ----
-                        redis.opsForStream().add(STREAM_KEY, Map.of(
-                                "portfolioId", pid.toString(),
-                                "score", score.toString(),
-                                "rank", String.valueOf(rank + 1),
-                                "avgRateOfReturn", m.getAvgRateOfReturn().toString(),
-                                "sharpeRatio", m.getSharpeRatio().toString(),
-                                "sortinoRatio", m.getSortinoRatio().toString(),
-                                "updatedAt", Instant.now().toString()
-                        ));
-
-                        log.debug("REDIS WRITE OK pid={} rank={}", pid, rank + 1);
-
-                    } catch (Exception e) {
-                        log.error("REDIS IO FAILED pid={}", pid, e);
-
-                        // optional infra-fail stream
-                        try {
-                            redis.opsForStream().add(
-                                    "leaderboard:stream:infra-fail",
-                                    Map.of(
-                                            "portfolioId", pid.toString(),
-                                            "error", "redis_write_failed",
-                                            "reason", e.getMessage(),
-                                            "timestamp", Instant.now().toString()
-                                    )
+                            Long rank = redis.execute(
+                                    rscript.upsertAndRank(),
+                                    List.of(ZKEY),
+                                    String.valueOf(redisScore),
+                                    pid.toString()
                             );
-                        } catch (Exception ignored) {
-                        }
-                    }
-                });
+
+                            if (rank == null) {
+                                throw new IllegalStateException("Redis rank failed");
+                            }
+
+                            String hkey = HKEY_PREFIX + pid;
+
+                            redis.opsForHash().put(hkey, "score", score.toString());
+                            redis.opsForHash().put(hkey, "sharpeRatio", m.getSharpeRatio().toString());
+                            redis.opsForHash().put(hkey, "sortinoRatio", m.getSortinoRatio().toString());
+                            redis.opsForHash().put(hkey, "avgRateOfReturn", m.getAvgRateOfReturn().toString());
+                            redis.opsForHash().put(hkey, "updatedAt", Instant.now().toString());
+
+                            redis.opsForStream().add(STREAM_KEY, Map.of(
+                                    "portfolioId", pid.toString(),
+                                    "score", score.toString(),
+                                    "rank", String.valueOf(rank + 1),
+                                    "avgRateOfReturn", m.getAvgRateOfReturn().toString(),
+                                    "sharpeRatio", m.getSharpeRatio().toString(),
+                                    "sortinoRatio", m.getSortinoRatio().toString(),
+                                    "updatedAt", Instant.now().toString()
+                            ));
+
+                        });
+
+                    });
+
+                } catch (java.util.concurrent.RejectedExecutionException ex) {
+
+                    log.error("🔥 REDIS EXECUTOR SATURATED — STOPPING KAFKA");
+
+                    redisHealth.down();   // <<< THIS IS CRITICAL
+
+                    throw new RuntimeException("Redis overloaded");
+                }
 
             } catch (Exception ex) {
                 log.error("Failed processing portfolio {}", m.getPortfolioId(), ex);
@@ -339,5 +390,35 @@ public class LeaderboardService {
         return e.getAvgRateOfReturn().multiply(BigDecimal.valueOf(50))
                 .add(e.getSharpeRatio().multiply(BigDecimal.valueOf(30)))
                 .add(e.getSortinoRatio().multiply(BigDecimal.valueOf(20)));
+    }
+
+    /**
+     * Retry helper: execute operation with exponential backoff. Max 3 attempts:
+     * 100ms, 200ms, 400ms.
+     */
+    private void executeWithRetry(String operationName, Runnable operation) {
+        int maxAttempts = 3;
+        int initialDelayMs = 100;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                operation.run();
+                log.debug("{} succeeded on attempt {}", operationName, attempt);
+                return;
+            } catch (Exception e) {
+                if (attempt == maxAttempts) {
+                    log.error("{} failed after {} attempts", operationName, maxAttempts, e);
+                    throw new RuntimeException(operationName + " failed after retries", e);
+                }
+                long delayMs = initialDelayMs * (long) Math.pow(2, attempt - 1);
+                log.warn("{} failed on attempt {}, retrying in {}ms", operationName, attempt, delayMs, e);
+                try {
+                    Thread.sleep(delayMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted during retry", ie);
+                }
+            }
+        }
     }
 }

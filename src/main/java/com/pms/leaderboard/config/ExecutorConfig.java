@@ -27,7 +27,7 @@ public class ExecutorConfig {
                 0L,
                 TimeUnit.MILLISECONDS,
                 new java.util.concurrent.ArrayBlockingQueue<>(5000),
-                new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy()
+                new java.util.concurrent.ThreadPoolExecutor.AbortPolicy()
         );
     }
 

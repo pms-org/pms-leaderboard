@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import com.pms.leaderboard.config.EventBuffer;
 import com.pms.leaderboard.dto.MessageDTO;
 import com.pms.leaderboard.services.LeaderboardService;
+import com.pms.leaderboard.services.RedisHealth;
 import com.pms.proto.analytics.RiskEvent;
 
 @Service
@@ -31,6 +32,9 @@ public class AnalyticsConsumer {
     EventBuffer eventBuffer;
 
     @Autowired
+    private RedisHealth redisHealth;
+
+    @Autowired
     LeaderboardService leaderboardService;
 
     @KafkaListener(topics = "${app.kafka.risk-topic}", containerFactory = "kafkaListenerContainerFactory")
@@ -41,11 +45,18 @@ public class AnalyticsConsumer {
             return;
         }
 
+        if (!redisHealth.isAvailable()) {
+
+            log.error("🚨 Redis DOWN — rejecting Kafka batch");
+            System.out.println("🚨 Redis DOWN — rejecting Kafka batch");
+
+            throw new RuntimeException("Redis unavailable — stop polling");
+        }
+
         log.info("Kafka batch received size={}", events.size());
         log.info("Kafka received at {}", System.currentTimeMillis());
         System.out.println("Kafka received at " + System.currentTimeMillis());
         System.out.println("Kafka batch received size={}" + events.size());
-
 
         events.forEach(e
                 -> log.debug(
