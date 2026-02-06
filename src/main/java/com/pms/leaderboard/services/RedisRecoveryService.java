@@ -23,8 +23,7 @@ public class RedisRecoveryService {
 
     @EventListener
     public void onRedisDown(RedisDownEvent ev) {
-        log.warn(" ⚠️⚠️⚠️ Redis reported DOWN — stopping Kafka listeners to avoid processing while infra is degraded");
-        System.out.println(" ⚠️⚠️⚠️ Redis reported DOWN — stopping Kafka listeners to avoid processing while infra is degraded");
+        log.warn(" Redis reported DOWN — stopping Kafka listeners to avoid processing while infra is degraded");
         for (MessageListenerContainer container : registry.getListenerContainers()) {
             try {
                 container.stop();
@@ -36,8 +35,7 @@ public class RedisRecoveryService {
 
     @EventListener
     public void onRedisUp(RedisUpEvent ev) {
-        log.info(" 👍👍👍 Redis reported UP — triggering Kafka replay and resuming consumption");
-        System.out.println(" 👍👍👍 Redis reported UP — triggering Kafka replay and resuming consumption");
+        log.info(" Redis reported UP — triggering Kafka replay and resuming consumption");
         try {
             kafkaReplayService.replay();
         } catch (Exception e) {

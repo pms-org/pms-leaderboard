@@ -19,22 +19,19 @@ public class RedisHeartbeat {
     @Scheduled(fixedDelay = 3000)
     public void ping() {
 
-        log.info("🔔🔔🔔🔔 Pinging Redis to check health...");
-        System.out.println("🔔🔔🔔🔔 Pinging Redis to check health...");
+        log.info(" Pinging Redis to check health...");
 
         try {
             redis.getConnectionFactory()
                  .getConnection()
                  .ping();
 
-            log.info("✅✅✅✅ Redis ping successful");
-            System.out.println("✅✅✅✅ Redis ping successful");
+            log.info(" Redis ping successful");
             redisHealth.up();
 
         } catch (Exception e) {
 
-            log.error("❌❌❌❌ Redis ping failed", e);
-            System.out.println("❌❌❌❌ Redis ping failed");
+            log.error(" Redis ping failed", e);
 
             redisHealth.down();
         }

@@ -17,9 +17,8 @@ public class LeaderboardController {
     @Autowired
     private LeaderboardService leaderboardService;
 
-    /**
-     * GET /api/leaderboard/top?top=100
-     */
+    // GET /api/leaderboard/top?top=100
+    
     @GetMapping("/top")
     public Map<String, Object> getTop(
             @RequestParam(defaultValue = "50") int top) {
@@ -27,9 +26,8 @@ public class LeaderboardController {
         return leaderboardService.getTop(top);
     }
 
-    /**
-     * GET /api/leaderboard/around?portfolioId=<uuid>&range=10
-     */
+    //GET /api/leaderboard/around?portfolioId=<uuid>&range=10
+
     @GetMapping("/around")
     public Map<String, Object> getAround(
             @RequestParam String portfolioId,

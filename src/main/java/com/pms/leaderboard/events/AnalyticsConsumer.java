@@ -48,8 +48,6 @@ public class AnalyticsConsumer {
         if (!redisHealth.isAvailable()) {
 
             log.error("🚨 Redis DOWN — rejecting Kafka batch");
-            System.out.println("🚨 Redis DOWN — rejecting Kafka batch");
-
             throw new RuntimeException("Redis unavailable — stop polling");
         }
 

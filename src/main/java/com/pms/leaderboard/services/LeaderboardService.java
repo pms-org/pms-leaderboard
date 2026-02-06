@@ -126,9 +126,9 @@ public class LeaderboardService {
 
                 } catch (java.util.concurrent.RejectedExecutionException ex) {
 
-                    log.error("🔥 REDIS EXECUTOR SATURATED — STOPPING KAFKA");
+                    log.error(" REDIS EXECUTOR SATURATED — STOPPING KAFKA");
 
-                    redisHealth.down();   // <<< THIS IS CRITICAL
+                    redisHealth.down();   
 
                     throw new RuntimeException("Redis overloaded");
                 }
@@ -241,10 +241,9 @@ public class LeaderboardService {
                 .add(e.getSortinoRatio().multiply(BigDecimal.valueOf(20)));
     }
 
-    /**
-     * Retry helper: execute operation with exponential backoff. Max 3 attempts:
-     * 100ms, 200ms, 400ms.
-     */
+    // Retry helper: execute operation with exponential backoff. Max 3 attempts:
+    // 100ms, 200ms, 400ms.
+    
     private void executeWithRetry(String operationName, Runnable operation) {
         int maxAttempts = 3;
         int initialDelayMs = 100;

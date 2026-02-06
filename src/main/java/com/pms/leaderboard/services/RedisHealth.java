@@ -2,6 +2,7 @@ package com.pms.leaderboard.services;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,7 +16,7 @@ import com.pms.leaderboard.events.RedisUpEvent;
 public class RedisHealth {
 
 
-    public static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RedisHealth.class);
+    public static final Logger log = LoggerFactory.getLogger(RedisHealth.class);
 
     private final AtomicBoolean available = new AtomicBoolean(true);
 
@@ -28,8 +29,7 @@ public class RedisHealth {
 
     public void down() {
         if (available.compareAndSet(true, false)) {
-            log.warn("🟥🟥🟥🟥 REDIS MARKED DOWN");
-            System.out.println("🟥🟥🟥🟥 REDIS MARKED DOWN");
+            log.warn(" REDIS MARKED DOWN");
             // notify listeners
             try {
                 publisher.publishEvent(new RedisDownEvent(this));
@@ -40,8 +40,7 @@ public class RedisHealth {
 
     public void up() {
         if (available.compareAndSet(false, true)) {
-            log.warn("🟩🟩🟩🟩 REDIS MARKED UP");
-            System.out.println("🟩🟩🟩🟩 REDIS MARKED UP");
+            log.warn(" REDIS MARKED UP");
             // notify listeners
             try {
                 publisher.publishEvent(new RedisUpEvent(this));

@@ -3,7 +3,6 @@ package com.pms.leaderboard.events;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +12,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.pms.proto.analytics.RiskEvent;
-
-// import com.pms.leaderboard.proto.RiskEvent;
 
 @Service
 public class AnalyticsProducer {
@@ -94,7 +91,6 @@ public class AnalyticsProducer {
 
         } catch (Exception e) {
             System.err.println("Error sending Kafka message: " + e.getMessage());
-            // Log error but don't rethrow - allow app to continue
         }
     }
 

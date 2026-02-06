@@ -38,7 +38,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        System.out.println(" 😊😊😊 Client Connected: " + session.getId());
+        System.out.println(" Client Connected: " + session.getId());
     }
 
     @Override
@@ -48,8 +48,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     public void broadcastSnapshot(List<LeaderboardDTO> list) {
 
-        log.info(" 🛜🛜🛜 WS broadcast to {} sessions", sessions.size());
-        System.out.println("WS broadcast to " + sessions.size() + " sessions");
+        log.info(" WS broadcast to {} sessions", sessions.size());
 
         Map<String, Object> payload = Map.of(
                 "event", "leaderboardSnapshot",

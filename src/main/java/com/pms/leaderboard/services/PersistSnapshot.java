@@ -62,25 +62,25 @@ public class PersistSnapshot {
                 dbHealth.up();
             }
 
-            log.info("✅ DB COMMIT OK rows={}", snapshots.size());
+            log.info(" DB COMMIT OK rows={}", snapshots.size());
 
         }
         // ---------- DATA ERRORS (NO RETRY) ----------
         catch (DataIntegrityViolationException e) {
-            log.error("❌ Data integrity violation", e);
+            log.error(" Data integrity violation", e);
             throw new DataValidationException("Invalid leaderboard data");
         }
         // ---------- TRANSIENT DB ERRORS (RETRY) ----------
         catch (CannotAcquireLockException |
                QueryTimeoutException e) {
 
-            log.warn("🔁 Transient DB failure", e);
+            log.warn(" Transient DB failure", e);
             throw new TransientDbException(e);
         }
         // ---------- UNKNOWN DB ERRORS (TREAT AS TRANSIENT) ----------
         catch (Exception e) {
             dbHealth.down();
-            log.error("❌ Unknown DB failure", e);
+            log.error(" Unknown DB failure", e);
             throw new TransientDbException(e);
         }
     }

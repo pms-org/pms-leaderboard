@@ -68,7 +68,7 @@ public class LeaderboardStreamConsumer {
         dbExecutor.submit(this::mainLoop);
         dbExecutor.submit(this::retryLoop);
 
-        log.info("✅ Stream consumers started");
+        log.info(" Stream consumers started");
     }
 
     // ---------- MAIN STREAM LOOP ----------
@@ -165,7 +165,7 @@ public class LeaderboardStreamConsumer {
 
         } // ---------- DATA ERROR → DLQ IMMEDIATELY ----------
         catch (DataValidationException e) {
-            log.error("❌ Data error → DLQ id={}", id);
+            log.error(" Data error → DLQ id={}", id);
 
             moveToDLQ(msg);
             redis.opsForStream().acknowledge(STREAM_KEY, GROUP, id);

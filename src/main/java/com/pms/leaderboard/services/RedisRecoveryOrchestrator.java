@@ -27,7 +27,7 @@ public class RedisRecoveryOrchestrator {
     @EventListener
     public void onRedisDown(RedisDownEvent ev) {
 
-        log.error("🚨 Redis DOWN — stopping Kafka consumers");
+        log.error(" Redis DOWN — stopping Kafka consumers");
 
         replayService.stopConsumers();
     }
@@ -36,7 +36,7 @@ public class RedisRecoveryOrchestrator {
     @EventListener
     public void onRedisUp(RedisUpEvent ev) {
 
-        log.info("✅ Redis UP — waiting for buffer drain...");
+        log.info(" Redis UP — waiting for buffer drain...");
 
         while (!buffer.isEmpty()) {
             try {
@@ -44,7 +44,7 @@ public class RedisRecoveryOrchestrator {
             } catch (InterruptedException ignored) {}
         }
 
-        log.info("✅ Buffer drained — starting replay");
+        log.info(" Buffer drained — starting replay");
 
         replayService.replay();
     }
