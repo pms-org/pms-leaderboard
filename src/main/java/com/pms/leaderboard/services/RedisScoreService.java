@@ -21,5 +21,5 @@ public class RedisScoreService {
         double hashFrac = idHash / 1e12;
         return base + stampFraction + hashFrac;
     }
-    
+
 }

@@ -8,10 +8,10 @@
         <version>4.0.0</version>
         <relativePath/>
     </parent>
-    <groupId>com.example</groupId>
-    <artifactId>demo</artifactId>
+    <groupId>com.pms</groupId>
+    <artifactId>leaderboard</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>wsdemo</name>
+    <name>leaderboard</name>
     <description>Demo project for Spring Boot</description>
     <url/>
     <licenses>
@@ -114,11 +114,6 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>pms-proto</artifactId>
-            <version>1.0.0</version>
         </dependency>
     </dependencies>
 

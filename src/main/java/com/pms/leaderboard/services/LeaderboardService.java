@@ -48,105 +48,7 @@ public class LeaderboardService {
 
     private static final Logger log = LoggerFactory.getLogger(LeaderboardService.class);
 
-    // public void processBatch(List<MessageDTO> batchList) {
-    //     if (batchList == null || batchList.isEmpty()) {
-    //         log.warn("processBatch called with EMPTY list");
-    //         return;
-    //     }
-    //     log.info("Processing batch size={}", batchList.size());
-    //     Map<UUID, MessageDTO> latest = new HashMap<>();
-    //     for (MessageDTO m : batchList) {
-    //         latest.put(m.getPortfolioId(), m);
-    //     }
-    //     List<BatchDTO> snapshotRows = new ArrayList<>();
-    //     List<MessageDTO> failed = new ArrayList<>();
-    //     Instant now = Instant.now();
-    //     for (MessageDTO m : latest.values()) {
-    //         log.debug(
-    //                 "Processing pid={} sharpe={} sortino={} avgReturn={}",
-    //                 m.getPortfolioId(),
-    //                 m.getSharpeRatio(),
-    //                 m.getSortinoRatio(),
-    //                 m.getAvgRateOfReturn()
-    //         );
-    //         try {
-    //             if (m.getAvgRateOfReturn() == null || m.getSharpeRatio() == null || m.getSortinoRatio() == null) {
-    //                 throw new IllegalStateException("NULL metrics for portfolio " + m.getPortfolioId());
-    //             }
-    //             UUID pid = m.getPortfolioId();
-    //             BigDecimal score = computeScore(m);
-    //             double redisScore = redisScoreService.compositeScore(
-    //                     score, Instant.now(), pid
-    //             );
-    //             log.debug("BEFORE LUA pid={}", pid);
-    //             Long rank = redis.execute(
-    //                     rscript.upsertAndRank(),
-    //                     List.of(ZKEY),
-    //                     String.valueOf(redisScore),
-    //                     pid.toString()
-    //             );
-    //             log.debug("AFTER LUA pid={} rank={}", pid, rank);
-    //             if (rank == null) {
-    //                 throw new IllegalStateException("Redis rank failed");
-    //             }
-    //             String hkey = HKEY_PREFIX + pid;
-    //             redis.opsForHash().put(hkey, "score", score.toString());
-    //             redis.opsForHash().put(hkey, "sharpeRatio", m.getSharpeRatio().toString());
-    //             redis.opsForHash().put(hkey, "sortinoRatio", m.getSortinoRatio().toString());
-    //             redis.opsForHash().put(hkey, "avgRateOfReturn", m.getAvgRateOfReturn().toString());
-    //             redis.opsForHash().put(hkey, "updatedAt", Instant.now().toString());
-    //             snapshotRows.add(new BatchDTO(pid, score, rank + 1, m.getAvgRateOfReturn(), m.getSharpeRatio(), m.getSortinoRatio()));
-    //             log.debug("HASH written {}", hkey);
-    //             redisExecutor.submit(() -> {
-    //                 try {
-    //                     redis.opsForStream().add(STREAM_KEY, Map.of(
-    //                             "portfolioId", pid.toString(),
-    //                             "score", score.toString(),
-    //                             "rank", String.valueOf(rank + 1),
-    //                             "avgRateOfReturn", m.getAvgRateOfReturn().toString(),
-    //                             "sharpeRatio", m.getSharpeRatio().toString(),
-    //                             "sortinoRatio", m.getSortinoRatio().toString(),
-    //                             "updatedAt", Instant.now().toString()
-    //                     ));
-    //                 } catch (Exception ignored) {
-    //                 }
-    //             });
-    //             // //  WRITE-THROUGH EVENT (Redis Stream)
-    //             // try {
-    //             //     redis.opsForStream().add(
-    //             //             STREAM_KEY,
-    //             //             Map.of(
-    //             //                     "portfolioId", pid.toString(),
-    //             //                     "score", score.toString(),
-    //             //                     "rank", String.valueOf(rank + 1),
-    //             //                     "sharpeRatio", m.getSharpeRatio().toString(),
-    //             //                     "sortinoRatio", m.getSortinoRatio().toString(),
-    //             //                     "avgRateOfReturn", m.getAvgRateOfReturn().toString(),
-    //             //                     "updatedAt", Instant.now().toString()
-    //             //             )
-    //             //     );
-    //             // } catch (Exception e) {
-    //             //     log.error("STREAM WRITE FAILED → writing to DLQ", e);
-    //             //     redis.opsForStream().add(
-    //             //             "leaderboard:stream:infra-fail",
-    //             //             Map.of(
-    //             //                     "portfolioId", pid.toString(),
-    //             //                     "error", "stream_write_failed",
-    //             //                     "reason", e.getMessage(),
-    //             //                     "timestamp", Instant.now().toString()
-    //             //             )
-    //             //     );
-    //             // }
-    //             log.info("STREAM write OK pid={} rank={}", pid, rank + 1);
-    //         } catch (Exception ex) {
-    //             log.error("Failed processing portfolio {}", m.getPortfolioId(), ex);
-    //             failed.add(m);
-    //         }
-    //     }
-    //     if (!failed.isEmpty()) {
-    //         log.warn("Failed portfolios count = {}", failed.size());
-    //     }
-    // }
+  
     public void processBatch(List<MessageDTO> batchList) {
 
         if (batchList == null || batchList.isEmpty()) {
@@ -184,62 +86,9 @@ public class LeaderboardService {
                         score, Instant.now(), pid
                 );
 
-                // 👉 PURE COMPUTE ENDS HERE
-                // 👉 ALL IO MOVED TO redisExecutor with retry logic
-                // redisExecutor.submit(() -> {
-                //     try {
-                //         // Wrap all Redis writes with retry
-                //         executeWithRetry("redis-write-" + pid, () -> {
-                //             // ---- ZSET UPSERT + RANK ----
-                //             Long rank = redis.execute(
-                //                     rscript.upsertAndRank(),
-                //                     List.of(ZKEY),
-                //                     String.valueOf(redisScore),
-                //                     pid.toString()
-                //             );
-                //             if (rank == null) {
-                //                 throw new IllegalStateException("Redis rank failed");
-                //             }
-                //             // ---- HASH UPDATE ----
-                //             String hkey = HKEY_PREFIX + pid;
-                //             redis.opsForHash().put(hkey, "score", score.toString());
-                //             redis.opsForHash().put(hkey, "sharpeRatio", m.getSharpeRatio().toString());
-                //             redis.opsForHash().put(hkey, "sortinoRatio", m.getSortinoRatio().toString());
-                //             redis.opsForHash().put(hkey, "avgRateOfReturn", m.getAvgRateOfReturn().toString());
-                //             redis.opsForHash().put(hkey, "updatedAt", Instant.now().toString());
-                //             // ---- STREAM WRITE ----
-                //             redis.opsForStream().add(STREAM_KEY, Map.of(
-                //                     "portfolioId", pid.toString(),
-                //                     "score", score.toString(),
-                //                     "rank", String.valueOf(rank + 1),
-                //                     "avgRateOfReturn", m.getAvgRateOfReturn().toString(),
-                //                     "sharpeRatio", m.getSharpeRatio().toString(),
-                //                     "sortinoRatio", m.getSortinoRatio().toString(),
-                //                     "updatedAt", Instant.now().toString()
-                //             ));
-                //             log.info("REDIS WRITE OK pid={} rank={} (with retry)", pid, rank + 1);
-                //         });
-                //     } catch (Exception e) {
-                //         log.error("REDIS IO FAILED pid={} after retries", pid, e);
-                //         // optional infra-fail stream
-                //         try {
-                //             redis.opsForStream().add(
-                //                     "leaderboard:stream:infra-fail",
-                //                     Map.of(
-                //                             "portfolioId", pid.toString(),
-                //                             "error", "redis_write_failed_after_retry",
-                //                             "reason", e.getMessage(),
-                //                             "timestamp", Instant.now().toString()
-                //                     )
-                //             );
-                //         } catch (Exception ignored) {
-                //         }
-                //     }
-                // });
+              
                 try {
-
                     redisExecutor.submit(() -> {
-
                         executeWithRetry("redis-write-" + pid, () -> {
 
                             Long rank = redis.execute(

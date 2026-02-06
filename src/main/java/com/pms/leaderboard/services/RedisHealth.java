@@ -11,57 +11,6 @@ import org.springframework.stereotype.Component;
 import com.pms.leaderboard.events.RedisDownEvent;
 import com.pms.leaderboard.events.RedisUpEvent;
 
-// @Component
-// @EnableScheduling
-// public class RedisHealthChecker {
-
-//     private static final Logger log =
-//             LoggerFactory.getLogger(RedisHealthChecker.class);
-
-//     private final StringRedisTemplate redisTemplate;
-//     private final RedisHealth redisHealth;
-
-//     private long retryDelay = 1000; // start with 1s
-//     private static final long MAX_DELAY = 30000; // 30 seconds
-
-//     public RedisHealthChecker(StringRedisTemplate redisTemplate,
-//                               RedisHealth redisHealth) {
-//         this.redisTemplate = redisTemplate;
-//         this.redisHealth = redisHealth;
-//     }
-
-//     @Scheduled(fixedDelay = 3000)
-//     public void checkRedis() {
-
-//         try {
-
-//             redisTemplate.opsForValue().get("health-check");
-
-//             if (!redisHealth.isAvailable()) {
-//                 log.warn("🟩 Redis reachable again");
-//                 redisHealth.up();
-//             }
-
-//             retryDelay = 1000; // reset
-
-//         } catch (Exception e) {
-
-//             if (redisHealth.isAvailable()) {
-//                 redisHealth.down();
-//             }
-
-//             log.error("Redis unreachable — retrying in {} ms", retryDelay);
-
-//             try {
-//                 Thread.sleep(retryDelay);
-//             } catch (InterruptedException ignored) {}
-
-//             retryDelay = Math.min(retryDelay * 2, MAX_DELAY);
-//         }
-//     }
-// }
-
-
 @Component
 public class RedisHealth {
 

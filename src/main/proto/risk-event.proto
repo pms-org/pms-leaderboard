@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package pms.analytics;
+
+option java_multiple_files = true;
+option java_package = "com.pms.proto.analytics";
+option java_outer_classname = "RiskEventProto";
+
+message RiskEvent {
+  string portfolio_id = 1;
+  double avg_rate_of_return = 2;
+  double sharpe_ratio = 3;
+  double sortino_ratio = 4;
+}
+
